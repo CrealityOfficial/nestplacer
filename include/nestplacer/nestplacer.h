@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <libnest2d/libnest2d.hpp>
+#include "trimesh2/Box.h"
 
 namespace nestplacer
 {
@@ -39,7 +40,8 @@ namespace nestplacer
 		~NestPlacer();
 	public:
 		static bool nest2d(Clipper3r::Paths ItemsPaths, int _imageW, int _imageH, int _dist, PlaceType placeType, std::vector<TransMatrix>& transData);
-
+		static void layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
+			std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
 	private:
 
 	};

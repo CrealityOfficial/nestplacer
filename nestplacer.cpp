@@ -209,6 +209,50 @@ namespace nestplacer
     }
 
 
+    void NestPlacer::layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
+        std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
+    {
+        double scaleFactor = 1000.0;
+        trimesh::box3 basebox = workspaceBox;
+        double imageW = basebox.max.x - basebox.min.x;
+        double imageH = basebox.max.y - basebox.min.y;
+        double dist = 10.0f;
 
+        Clipper3r::Paths allItem;
+        allItem.reserve(models.size());
+        for (std::vector<trimesh::vec3> m : models)
+        {
+            Clipper3r::Path oItem;
+            int m_size = m.size();
+            oItem.resize(m_size);
+            for (int i = 0; i < m_size; i++)
+            {
+                oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * scaleFactor);
+                oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * scaleFactor);
+            }
+            allItem.push_back(oItem);
+        }
+
+        int _imageW = (basebox.max.x - basebox.min.x) * scaleFactor;
+        int _imageH = (basebox.max.y - basebox.min.y) * scaleFactor;
+        int _dist = dist * scaleFactor;
+
+        std::vector<nestplacer::TransMatrix> transData;
+        nestplacer::PlaceType packType = nestplacer::PlaceType::LEFT_TO_RIGHT;
+        nestplacer::NestPlacer::nest2d(allItem, _imageW, _imageH, _dist, packType, transData);
+
+        /////settle models that can be settled inside
+        trimesh::vec3 total_offset;
+        for (size_t i = 0; i < modelIndices.size(); i++)
+        {
+            trimesh::vec3 newBoxCenter;
+            newBoxCenter.x = transData.at(i).x / scaleFactor + 0.5 * imageW;
+            newBoxCenter.y = transData.at(i).y / scaleFactor + 0.5 * imageH;
+            newBoxCenter.z = transData.at(i).rotation;
+            int modelIndexI = modelIndices[i];
+            modelPositionUpdateFunc(modelIndexI, newBoxCenter);
+        }
+
+    }
 
 }
