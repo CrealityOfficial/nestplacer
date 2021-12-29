@@ -99,7 +99,7 @@ namespace nestplacer
             {
                 Clipper3r::ReversePath(ItemPath);//正轮廓倒序
             }
-            ItemPath = libnest2d::shapelike::convexHull(ItemPath);//仅支持完全凸轮廓排样
+            ItemPath = libnest2d::shapelike::convexHull(ItemPath);//仅支持凸轮廓排样
             input.push_back(libnest2d::Item(ItemPath));
         }
 
@@ -121,7 +121,7 @@ namespace nestplacer
         case PlaceType::DOWN_TO_UP: {imgH_dst = imgH * 3; }; break;
         }
 
-        int egde_dist = 2 * scaleFactor;//排样到边缘距离为1个像素
+        int egde_dist = 2 * scaleFactor;//排样到边缘最近距离为1mm
         if (egde_dist > dist) egde_dist = dist;
         imgW_dst += dist - egde_dist;
         imgH_dst += dist - egde_dist;
@@ -237,9 +237,9 @@ namespace nestplacer
         int _imageH = (basebox.max.y - basebox.min.y) * scaleFactor;
         int _dist = dist * scaleFactor;
 
-        std::vector<nestplacer::TransMatrix> transData;
-        nestplacer::PlaceType packType = nestplacer::PlaceType::LEFT_TO_RIGHT;
-        nestplacer::NestPlacer::nest2d(allItem, _imageW, _imageH, _dist, packType, transData);
+        std::vector<TransMatrix> transData;
+        PlaceType packType = PlaceType::LEFT_TO_RIGHT;
+        nest2d(allItem, _imageW, _imageH, _dist, packType, transData);
 
         /////settle models that can be settled inside
         trimesh::vec3 total_offset;
