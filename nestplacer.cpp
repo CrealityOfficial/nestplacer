@@ -238,7 +238,7 @@ namespace nestplacer
         int _dist = dist * scaleFactor;
 
         std::vector<TransMatrix> transData;
-        PlaceType packType = PlaceType::LEFT_TO_RIGHT;
+        PlaceType packType = PlaceType::CENTER_TO_SIDE;
         nest2d(allItem, _imageW, _imageH, _dist, packType, transData);
 
         /////settle models that can be settled inside
