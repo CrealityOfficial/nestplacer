@@ -1,6 +1,6 @@
 #include"nestplacer/nestplacer.h"
 
-#include<iostream>
+#include <iostream>
 #include <libnest2d/libnest2d.hpp>
 
 const double BP2D_CONSTEXPR Pi = 3.141592653589793238463;

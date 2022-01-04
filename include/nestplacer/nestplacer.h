@@ -3,8 +3,7 @@
 #include "nestplacer/export.h"
 
 #include <vector>
-
-#include <libnest2d/libnest2d.hpp>
+#include "clipper3r/clipper.hpp"
 #include "trimesh2/Box.h"
 
 namespace nestplacer

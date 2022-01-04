@@ -9,5 +9,6 @@ set(LIBS trimesh2 libnest2d clipper3r nlopt)
 __add_real_target(nestplacer dll SOURCE ${SRC} 
 								LIB ${LIBS}
 								DEF _NESTPLACER_DLL
-								INC ${CMAKE_CURRENT_SOURCE_DIR}/include
-								INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+								INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS}
+								INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
+								)
