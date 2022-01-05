@@ -4,7 +4,7 @@ if(NOT WIN32)
 	add_compile_options(-fPIC)
 	add_definitions(-DHAVE_PTHREADS)
 endif()
-set(LIBS libnest2d clipper3r nlopt)
+set(LIBS libnest2d clipper3r nlopt trimesh2)
 
 __add_real_target(nestplacer dll SOURCE ${SRC} 
 								LIB ${LIBS}
