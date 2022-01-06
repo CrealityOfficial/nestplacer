@@ -120,13 +120,19 @@ namespace nestplacer
         case PlaceType::UP_TO_DOWN: {imgH_dst = imgH * 3; offsetY = -2.0 * imgH; }; break;
         case PlaceType::DOWN_TO_UP: {imgH_dst = imgH * 3; }; break;
         }
-
-        int egde_dist = 2 * scaleFactor;//排样到边缘最近距离为1mm
-        if (egde_dist > dist) egde_dist = dist;
-        imgW_dst += dist - egde_dist;
-        imgH_dst += dist - egde_dist;
-        offsetX += (dist - egde_dist) / 2;
-        offsetY += (dist - egde_dist) / 2;
+#if(0)
+        int edge_dist = 2 * scaleFactor;//排样到边缘最近距离为1um
+        if (edge_dist > dist) edge_dist = dist;
+        imgW_dst += dist - edge_dist;
+        imgH_dst += dist - edge_dist;
+        offsetX += (dist - edge_dist) / 2;
+        offsetY += (dist - edge_dist) / 2;
+#else 
+        imgW_dst += dist;
+        imgH_dst += dist;
+        offsetX += dist / 2;
+        offsetY += dist / 2;
+#endif
 
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
         std::size_t result = libnest2d::nest(input, maxBox, dist, cfg, ctl);//只能处理凸包
