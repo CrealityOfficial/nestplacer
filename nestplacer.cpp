@@ -120,7 +120,8 @@ namespace nestplacer
         case PlaceType::DOWN_TO_UP: {imgH_dst = imgH * 3; }; break;
         }
 
-        int egde_dist = 2;//排样到边缘最近距离为1单位
+        int egde_dist = 100;//排样到边缘最近距离为50单位
+        if (input.size() == 1) egde_dist = 0;
         if (egde_dist > dist) egde_dist = dist;
         imgW_dst += dist - egde_dist;
         imgH_dst += dist - egde_dist;
