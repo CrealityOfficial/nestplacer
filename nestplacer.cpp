@@ -74,8 +74,7 @@ namespace nestplacer
             }
         };
 
-        double scaleFactor = 100.0;
-        auto convert = [&scaleFactor, &ItemsPaths](Clipper3r::Path& oItem, int index) {
+        auto convert = [&ItemsPaths](Clipper3r::Path& oItem, int index) {
             Clipper3r::Path lines = ItemsPaths.at(index);
             size_t size = lines.size();
             if (size > 0)
@@ -83,8 +82,8 @@ namespace nestplacer
                 oItem.resize(size);
                 for (size_t i = 0; i < size; ++i)
                 {
-                    oItem.at(i).X = (Clipper3r::cInt)(lines.at(i).X * scaleFactor);
-                    oItem.at(i).Y = (Clipper3r::cInt)(lines.at(i).Y * scaleFactor);
+                    oItem.at(i).X = (Clipper3r::cInt)(lines.at(i).X);
+                    oItem.at(i).Y = (Clipper3r::cInt)(lines.at(i).Y);
                 }
             }
         };
@@ -103,11 +102,11 @@ namespace nestplacer
             input.push_back(libnest2d::Item(ItemPath));
         }
 
-        int imgW = (Clipper3r::cInt)(_imageW * scaleFactor);   //排样区域宽
-        int imgH = (Clipper3r::cInt)(_imageH * scaleFactor);   //排样区域高
-        int dist = (Clipper3r::cInt)(_dist * scaleFactor);     //排样间距
+        Clipper3r::cInt imgW = _imageW;   //排样区域宽
+        Clipper3r::cInt imgH = _imageH;   //排样区域高
+        Clipper3r::cInt dist = _dist;     //排样间距
 
-        int imgW_dst = imgW, imgH_dst = imgH;
+        Clipper3r::cInt imgW_dst = imgW, imgH_dst = imgH;
 
         double offsetX = 0., offsetY = 0.;
         switch (placeType)  //排样区域放大适配
@@ -120,19 +119,13 @@ namespace nestplacer
         case PlaceType::UP_TO_DOWN: {imgH_dst = imgH * 3; offsetY = -2.0 * imgH; }; break;
         case PlaceType::DOWN_TO_UP: {imgH_dst = imgH * 3; }; break;
         }
-#if(0)
-        int edge_dist = 2 * scaleFactor;//排样到边缘最近距离为1um
-        if (edge_dist > dist) edge_dist = dist;
-        imgW_dst += dist - edge_dist;
-        imgH_dst += dist - edge_dist;
-        offsetX += (dist - edge_dist) / 2;
-        offsetY += (dist - edge_dist) / 2;
-#else 
-        imgW_dst += dist;
-        imgH_dst += dist;
-        offsetX += dist / 2;
-        offsetY += dist / 2;
-#endif
+
+        int egde_dist = 2;//排样到边缘最近距离为1单位
+        if (egde_dist > dist) egde_dist = dist;
+        imgW_dst += dist - egde_dist;
+        imgH_dst += dist - egde_dist;
+        offsetX += (dist - egde_dist) / 2;
+        offsetY += (dist - egde_dist) / 2;
 
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
         std::size_t result = libnest2d::nest(input, maxBox, dist, cfg, ctl);//只能处理凸包
@@ -181,8 +174,8 @@ namespace nestplacer
                 model_offset_y += center_offset_y;
                 TransMatrix itemTrans;
                 itemTrans.rotation = input[i].rotation().toDegrees();
-                itemTrans.x = (model_offset_x + offsetX - 0.5 * imgW) / scaleFactor;
-                itemTrans.y = (model_offset_y + offsetY - 0.5 * imgH) / scaleFactor;
+                itemTrans.x = model_offset_x + offsetX - 0.5 * imgW;
+                itemTrans.y = model_offset_y + offsetY - 0.5 * imgH;
                 transData[i] = itemTrans;
             }
         }
@@ -204,8 +197,8 @@ namespace nestplacer
                 libnest2d::Item& iitem_dst = input_outer_items.at(idx);
                 TransMatrix itemTrans;
                 itemTrans.rotation = iitem_dst.rotation().toDegrees();
-                itemTrans.x = (iitem_dst.translation().X - 0.5 * imgW) / scaleFactor;
-                itemTrans.y = (iitem_dst.translation().Y - 0.5 * imgH) / scaleFactor;
+                itemTrans.x = iitem_dst.translation().X - 0.5 * imgW;
+                itemTrans.y = iitem_dst.translation().Y - 0.5 * imgH;
                 transData[i] = itemTrans;
                 idx++;
             }
@@ -218,7 +211,7 @@ namespace nestplacer
     void NestPlacer::layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
         std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
     {
-        double scaleFactor = 1000.0;
+        double scaleFactor = 10000.0;
         trimesh::box3 basebox = workspaceBox;
         double imageW = basebox.max.x - basebox.min.x;
         double imageH = basebox.max.y - basebox.min.y;
