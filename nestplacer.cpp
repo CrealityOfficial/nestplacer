@@ -4,6 +4,7 @@
 #include <libnest2d/libnest2d.hpp>
 
 const double BP2D_CONSTEXPR Pi = 3.141592653589793238463;
+const double FACTOR = 10000.0;
 
 namespace nestplacer
 {
@@ -253,6 +254,33 @@ namespace nestplacer
             modelPositionUpdateFunc(modelIndexI, newBoxCenter);
         }
 
+    }
+
+    bool NestPlacer::nest2d(const std::vector<NestItemer*>& items, float w, float h, float d, PlaceType type, PlaceFunc func)
+    {
+        int _imageW = w * FACTOR;
+        int _imageH = h * FACTOR;
+        int _dist = d * FACTOR;
+
+        std::vector<TransMatrix> transData;
+        std::vector<libnest2d::Item> nestItems;
+        for (const NestItemer* itemer : items)
+            nestItems.emplace_back(itemer->path());
+
+        bool nestResult = false; // nest2d(allItem, _imageW, _imageH, _dist, type, transData);
+
+        if (func && nestResult)
+        {
+            size_t size = transData.size();
+            for (size_t i = 0; i < size; i++)
+            {
+                trimesh::vec3 newData;
+                newData.x = transData.at(i).x / FACTOR + 0.5 * w;
+                newData.y = transData.at(i).y / FACTOR + 0.5 * h;
+                newData.z = transData.at(i).rotation;
+                func((int)i, newData);
+            }
+        }
     }
 
 }

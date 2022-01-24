@@ -32,6 +32,14 @@ namespace nestplacer
 		}
 	};
 
+	typedef std::function<void(int, trimesh::vec3)> PlaceFunc;
+	class NestItemer
+	{
+	public:
+		virtual ~NestItemer() {}
+		virtual const Clipper3r::Path& path() const = 0;
+	};
+
 	class _NESTPLACER_API NestPlacer
 	{
 	public:
@@ -41,8 +49,9 @@ namespace nestplacer
 		static bool nest2d(Clipper3r::Paths ItemsPaths, int _imageW, int _imageH, int _dist, PlaceType placeType, std::vector<TransMatrix>& transData);
 		static void layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
 			std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
-	private:
 
+		static bool nest2d(const std::vector<NestItemer*>& items, float w, float h, float d, PlaceType type, PlaceFunc func);
+	private:
 	};
 }
 
