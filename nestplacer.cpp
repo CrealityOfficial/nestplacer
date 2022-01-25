@@ -256,12 +256,8 @@ namespace nestplacer
 
     }
 
-    bool NestPlacer::nest2d(const std::vector<NestItemer*>& items, float w, float h, float d, PlaceType type, PlaceFunc func)
+    bool NestPlacer::nest2d(const std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func)
     {
-        int _imageW = w * FACTOR;
-        int _imageH = h * FACTOR;
-        int _dist = d * FACTOR;
-
         std::vector<TransMatrix> transData;
         std::vector<libnest2d::Item> nestItems;
         for (const NestItemer* itemer : items)
@@ -273,13 +269,7 @@ namespace nestplacer
         {
             size_t size = transData.size();
             for (size_t i = 0; i < size; i++)
-            {
-                trimesh::vec3 newData;
-                newData.x = transData.at(i).x / FACTOR + 0.5 * w;
-                newData.y = transData.at(i).y / FACTOR + 0.5 * h;
-                newData.z = transData.at(i).rotation;
-                func((int)i, newData);
-            }
+                func((int)i, transData.at(i));
         }
 
         return true;

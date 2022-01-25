@@ -6,6 +6,8 @@
 #include "clipper3r/clipper.hpp"
 #include "trimesh2/Box.h"
 
+#define NEST_FACTOR  10000.0
+
 namespace nestplacer
 {
 	enum class PlaceType {
@@ -32,12 +34,15 @@ namespace nestplacer
 		}
 	};
 
-	typedef std::function<void(int, trimesh::vec3)> PlaceFunc;
+	typedef std::function<void(int, const TransMatrix&)> PlaceFunc;
+	typedef std::function<void(const TransMatrix&)> PlaceOneFunc;
 	class NestItemer
 	{
 	public:
 		virtual ~NestItemer() {}
 		virtual const Clipper3r::Path& path() const = 0;
+		virtual Clipper3r::IntPoint translate() = 0;
+		virtual float rotation() = 0;
 	};
 
 	class _NESTPLACER_API NestPlacer
@@ -50,7 +55,8 @@ namespace nestplacer
 		static void layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
 			std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
 
-		static bool nest2d(const std::vector<NestItemer*>& items, float w, float h, float d, PlaceType type, PlaceFunc func);
+		static bool nest2d(const std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func);
+		static bool nest2d(const std::vector<NestItemer*>& items, NestItemer* item, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceOneFunc func);
 	private:
 	};
 }

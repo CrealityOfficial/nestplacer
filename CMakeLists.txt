@@ -1,4 +1,7 @@
-__files_group(${CMAKE_CURRENT_SOURCE_DIR}/ SRC)
+set(SRCS nestplacer.cpp
+		 include/nestplacer/export.h
+		 include/nestplacer/nestplacer.h
+		 )
 
 if(NOT WIN32)
 	add_compile_options(-fPIC)
@@ -6,7 +9,7 @@ if(NOT WIN32)
 endif()
 set(LIBS libnest2d clipper3r nlopt trimesh2)
 
-__add_real_target(nestplacer dll SOURCE ${SRC} 
+__add_real_target(nestplacer dll SOURCE ${SRCS} 
 								LIB ${LIBS}
 								DEF _NESTPLACER_DLL
 								INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS}
