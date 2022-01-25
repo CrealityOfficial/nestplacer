@@ -366,7 +366,7 @@ namespace nestplacer
         offsetY += (d - egde_dist) / 2;
 
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
-        nestResult &= libnest2d::nest(nestItems, maxBox, d, cfg, libnest2d::NestControl());//只能处理凸包
+        nestResult |= libnest2d::nest(nestItems, maxBox, d, cfg, libnest2d::NestControl());//只能处理凸包
 
 
         Clipper3r::Clipper a;
@@ -410,22 +410,24 @@ namespace nestplacer
         }
 
         //////区域外模型排样
-        if (input_outer_items.size() == 1) return true;
-        cfg.placer_config.object_function = NULL;
-        cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
-        imgW_dst = w * 1001; imgH_dst = h * 1001;
-        maxBox = libnest2d::Box(imgW_dst, imgH_dst, { w / 2, h / 2 });
-        nestResult &= libnest2d::nest(input_outer_items, maxBox, d, cfg, libnest2d::NestControl());
-        int idx = 1;
-        for (int i = 0; i < size; i++)
+        if (input_outer_items.size() > 1)
         {
-            libnest2d::Item& iitem = nestItems.at(i);
-            double angle = iitem.rotation().toDegrees();
-            if (angle == -90.)
+            cfg.placer_config.object_function = NULL;
+            cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+            imgW_dst = w * 1001; imgH_dst = h * 1001;
+            maxBox = libnest2d::Box(imgW_dst, imgH_dst, { w / 2, h / 2 });
+            nestResult |= libnest2d::nest(input_outer_items, maxBox, d, cfg, libnest2d::NestControl());
+            int idx = 1;
+            for (int i = 0; i < size; i++)
             {
-                libnest2d::Item& iitem_dst = input_outer_items.at(idx);
-                transData[i] = getTransMatrixFromItem(iitem_dst, 0, 0);
-                idx++;
+                libnest2d::Item& iitem = nestItems.at(i);
+                double angle = iitem.rotation().toDegrees();
+                if (angle == -90.)
+                {
+                    libnest2d::Item& iitem_dst = input_outer_items.at(idx);
+                    transData[i] = getTransMatrixFromItem(iitem_dst, 0, 0);
+                    idx++;
+                }
             }
         }
 
