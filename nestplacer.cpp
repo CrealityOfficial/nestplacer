@@ -275,4 +275,8 @@ namespace nestplacer
         return true;
     }
 
+    bool NestPlacer::nest2d(const std::vector<NestItemer*>& items, NestItemer* item, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceOneFunc func)
+    {
+        return true;
+    }
 }
