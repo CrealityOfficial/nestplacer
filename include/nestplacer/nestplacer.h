@@ -55,8 +55,8 @@ namespace nestplacer
 		static void layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
 			std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
 
-		static bool nest2d(const std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func);
-		static bool nest2d(const std::vector<NestItemer*>& items, NestItemer* item, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceOneFunc func);
+		static bool nest2d(std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func);
+		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceOneFunc func);
 	private:
 	};
 }
