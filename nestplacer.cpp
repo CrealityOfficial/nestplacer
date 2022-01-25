@@ -281,6 +281,8 @@ namespace nestplacer
                 func((int)i, newData);
             }
         }
+
+        return true;
     }
 
 }
