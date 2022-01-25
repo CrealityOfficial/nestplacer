@@ -261,9 +261,163 @@ namespace nestplacer
         std::vector<TransMatrix> transData;
         std::vector<libnest2d::Item> nestItems;
         for (const NestItemer* itemer : items)
-            nestItems.emplace_back(itemer->path());
+            nestItems.emplace_back(libnest2d::shapelike::convexHull(itemer->path()));
 
         bool nestResult = false; // nest2d(allItem, _imageW, _imageH, _dist, type, transData);
+
+        if (nestItems.size() == 2)
+            type = PlaceType::CENTER_TO_SIDE;
+
+        size_t size = nestItems.size();
+        transData.resize(size);
+
+
+        libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
+
+        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        switch (type)
+        {
+        case PlaceType::CENTER_TO_SIDE: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
+        case PlaceType::MID_TO_UP_DOWN: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
+            //从Y中轴线向上下两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
+        case PlaceType::MID_TO_LEFT_RIGHT: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
+            //从X中轴线向左右两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
+        case PlaceType::LEFT_TO_RIGHT: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT; break;
+            //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
+        case PlaceType::RIGHT_TO_LEFT: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_RIGHT; break;
+            //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+        case PlaceType::UP_TO_DOWN: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT; break;
+            //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
+        case PlaceType::DOWN_TO_UP: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT; break;
+            //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+        }
+
+        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
+        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
+        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
+        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
+        //cfg.placer_config.accuracy; //优化率 
+        //cfg.placer_config.explore_holes;  //孔内是否放置图元,目前源码中还未实现
+        //cfg.placer_config.parallel;  //启用多线程
+        //cfg.placer_config.before_packing; //摆放下一个Item之前，先对前面已经摆放好的Item进行调整的函数，若为空，则Item拍好位置后将不再变动。传入函数接口
+        //cfg.placer_config.object_function;  //添加优化方向，向函数输出值最小化优化，以此改变排放方式，传入函数接口
+
+        //cfg.selector_config;
+
+        libnest2d::NestControl ctl;
+
+        cfg.placer_config.object_function = [type](const libnest2d::Item&)  //优化方向
+        {
+            switch (type)
+            {
+            case PlaceType::CENTER_TO_SIDE: return 3; break;
+            case PlaceType::MID_TO_UP_DOWN: return 4; break;
+            case PlaceType::MID_TO_LEFT_RIGHT: return 5; break;
+            case PlaceType::LEFT_TO_RIGHT: return 6; break;
+            case PlaceType::RIGHT_TO_LEFT: return 7; break;
+            case PlaceType::DOWN_TO_UP: return 8; break;
+            case PlaceType::UP_TO_DOWN: return 9; break;
+            }
+        };
+
+        Clipper3r::cInt imgW_dst = w, imgH_dst = h;
+
+        double offsetX = 0., offsetY = 0.;
+        switch (type)  //排样区域放大适配
+        {
+        case PlaceType::CENTER_TO_SIDE: {imgW_dst = w * 3; imgH_dst = h * 3; offsetX = -1.0 * w; offsetY = -1.0 * h; }; break;
+        case PlaceType::MID_TO_UP_DOWN: {imgH_dst = h * 3;  offsetY = -1.0 * h; }; break;
+        case PlaceType::MID_TO_LEFT_RIGHT: {imgW_dst = w * 3; offsetX = -1.0 * w; }; break;
+        case PlaceType::LEFT_TO_RIGHT: {imgW_dst = w * 3; }; break;
+        case PlaceType::RIGHT_TO_LEFT: {imgW_dst = w * 3; offsetX = -2.0 * w; }; break;
+        case PlaceType::UP_TO_DOWN: {imgH_dst = h * 3; offsetY = -2.0 * h; }; break;
+        case PlaceType::DOWN_TO_UP: {imgH_dst = h * 3; }; break;
+        }
+
+        int egde_dist = 100;//排样到边缘最近距离为50单位
+        if (nestItems.size() == 1) egde_dist = 0;
+        if (egde_dist > d) egde_dist = d;
+        imgW_dst += d - egde_dist;
+        imgH_dst += d - egde_dist;
+        offsetX += (d - egde_dist) / 2;
+        offsetY += (d - egde_dist) / 2;
+
+        libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
+        nestResult &= libnest2d::nest(nestItems, maxBox, d, cfg, ctl);//只能处理凸包
+
+
+        Clipper3r::Clipper a;
+        for (int i = 0; i < size; i++)
+        {
+            double angle = nestItems.at(i).rotation().toDegrees();
+            if (angle != -90.)//区域内模型
+            {
+                auto trans_item = nestItems.at(i).transformedShape_s();
+                a.AddPath(trans_item.Contour, Clipper3r::ptSubject, true);
+            }
+        }
+        Clipper3r::IntRect ibb_dst = a.GetBounds();
+        int center_offset_x = 0.5 * w - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
+        int center_offset_y = 0.5 * h - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
+
+        std::vector<libnest2d::Item> input_outer_items(1,
+            {
+                {0, h},
+                {w, h},
+                {w, 0},
+                {0, 0},
+                {0, h}
+            });//定义第一个轮廓遮挡中心排样区域
+
+        input_outer_items[0].translation({ 1, 0 }); //packed mark
+
+        for (int i = 0; i < size; i++)
+        {
+            libnest2d::Item& iitem = nestItems.at(i);
+
+            int model_offset_x = iitem.translation().X;
+            int model_offset_y = iitem.translation().Y;
+            double angle = iitem.rotation().toDegrees();
+
+            if (angle == -90.)
+            {
+                input_outer_items.push_back(libnest2d::Item(iitem.rawShape()));//收集排样区域外模型
+            }
+            else
+            {
+                model_offset_x += center_offset_x;
+                model_offset_y += center_offset_y;
+                TransMatrix itemTrans;
+                itemTrans.rotation = nestItems[i].rotation().toDegrees();
+                itemTrans.x = model_offset_x + offsetX - 0.5 * w;
+                itemTrans.y = model_offset_y + offsetY - 0.5 * h;
+                transData[i] = itemTrans;
+            }
+        }
+
+        //////区域外模型排样
+        if (input_outer_items.size() == 1) return true;
+        cfg.placer_config.object_function = NULL;
+        cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        imgW_dst = w * 1001; imgH_dst = h * 1001;
+        maxBox = libnest2d::Box(imgW_dst, imgH_dst, { w / 2, h / 2 });
+        nestResult &= libnest2d::nest(input_outer_items, maxBox, d, cfg, ctl);
+        int idx = 1;
+        for (int i = 0; i < size; i++)
+        {
+            libnest2d::Item& iitem = nestItems.at(i);
+            double angle = iitem.rotation().toDegrees();
+            if (angle == -90.)
+            {
+                libnest2d::Item& iitem_dst = input_outer_items.at(idx);
+                TransMatrix itemTrans;
+                itemTrans.rotation = iitem_dst.rotation().toDegrees();
+                itemTrans.x = iitem_dst.translation().X - 0.5 * w;
+                itemTrans.y = iitem_dst.translation().Y - 0.5 * h;
+                transData[i] = itemTrans;
+                idx++;
+            }
+        }
 
         if (func && nestResult)
         {
