@@ -346,16 +346,16 @@ namespace nestplacer
         Clipper3r::cInt imgW_dst = w, imgH_dst = h;
 
         double offsetX = 0., offsetY = 0.;
-        switch (type)  //排样区域放大适配
-        {
-        case PlaceType::CENTER_TO_SIDE: {imgW_dst = w * 3; imgH_dst = h * 3; offsetX = -1.0 * w; offsetY = -1.0 * h; }; break;
-        case PlaceType::MID_TO_UP_DOWN: {imgH_dst = h * 3;  offsetY = -1.0 * h; }; break;
-        case PlaceType::MID_TO_LEFT_RIGHT: {imgW_dst = w * 3; offsetX = -1.0 * w; }; break;
-        case PlaceType::LEFT_TO_RIGHT: {imgW_dst = w * 3; }; break;
-        case PlaceType::RIGHT_TO_LEFT: {imgW_dst = w * 3; offsetX = -2.0 * w; }; break;
-        case PlaceType::UP_TO_DOWN: {imgH_dst = h * 3; offsetY = -2.0 * h; }; break;
-        case PlaceType::DOWN_TO_UP: {imgH_dst = h * 3; }; break;
-        }
+        //switch (type)  //排样区域放大适配
+        //{
+        //case PlaceType::CENTER_TO_SIDE: {imgW_dst = w * 3; imgH_dst = h * 3; offsetX = -1.0 * w; offsetY = -1.0 * h; }; break;
+        //case PlaceType::MID_TO_UP_DOWN: {imgH_dst = h * 3;  offsetY = -1.0 * h; }; break;
+        //case PlaceType::MID_TO_LEFT_RIGHT: {imgW_dst = w * 3; offsetX = -1.0 * w; }; break;
+        //case PlaceType::LEFT_TO_RIGHT: {imgW_dst = w * 3; }; break;
+        //case PlaceType::RIGHT_TO_LEFT: {imgW_dst = w * 3; offsetX = -2.0 * w; }; break;
+        //case PlaceType::UP_TO_DOWN: {imgH_dst = h * 3; offsetY = -2.0 * h; }; break;
+        //case PlaceType::DOWN_TO_UP: {imgH_dst = h * 3; }; break;
+        //}
 
         int egde_dist = 100;//排样到边缘最近距离为50单位
         if (nestItems.size() == 1) egde_dist = 0;
@@ -380,8 +380,8 @@ namespace nestplacer
             }
         }
         Clipper3r::IntRect ibb_dst = a.GetBounds();
-        int center_offset_x = 0.5 * w - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
-        int center_offset_y = 0.5 * h - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
+        int center_offset_x = 0;// .5 * w - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
+        int center_offset_y = 0;// .5 * h - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
@@ -477,7 +477,6 @@ namespace nestplacer
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
         InitCfg(cfg);
-
         std::vector<libnest2d::Item> input;
         std::vector<libnest2d::Item> input_out_pack;
         for (NestItemer* itemer : items)
@@ -496,7 +495,7 @@ namespace nestplacer
             auto trans_item = item.transformedShape_s();
             if (bOnTheEdge(trans_item.Contour, w, h) == 2)
             {
-                item.translation({ Clipper3r::cInt(trans_data.X + offsetX), Clipper3r::cInt(trans_data.Y + offsetY) });
+                item.translation({ Clipper3r::cInt(trans_data.X), Clipper3r::cInt(trans_data.Y) });
                 input.push_back(item);
             }
             else
@@ -524,7 +523,7 @@ namespace nestplacer
         input.push_back(newItem);
 
         Clipper3r::cInt imgW_dst = w, imgH_dst = h;
-        libnest2d::Box maxBox = libnest2d::Box(imgW_dst + 2 * offsetX, imgH_dst + 2 * offsetY, { w / 2 + offsetX, h / 2 + offsetY });
+        libnest2d::Box maxBox = libnest2d::Box(imgW_dst + 2 * offsetX, imgH_dst + 2 * offsetY, { w / 2, h / 2});
         std::size_t result = libnest2d::nest(input, maxBox, d, cfg, libnest2d::NestControl());
 
         int total_size = input.size();
