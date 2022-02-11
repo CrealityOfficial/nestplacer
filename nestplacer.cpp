@@ -29,7 +29,7 @@ namespace nestplacer
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
 
-        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         switch (placeType)
         {
         case PlaceType::CENTER_TO_SIDE: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
@@ -110,16 +110,6 @@ namespace nestplacer
         Clipper3r::cInt imgW_dst = imgW, imgH_dst = imgH;
 
         double offsetX = 0., offsetY = 0.;
-        switch (placeType)  //排样区域放大适配
-        {
-        case PlaceType::CENTER_TO_SIDE: {imgW_dst = imgW * 3; imgH_dst = imgH * 3; offsetX = -1.0 * imgW; offsetY = -1.0 * imgH; }; break;
-        case PlaceType::MID_TO_UP_DOWN: {imgH_dst = imgH * 3;  offsetY = -1.0 * imgH; }; break;
-        case PlaceType::MID_TO_LEFT_RIGHT: {imgW_dst = imgW * 3; offsetX = -1.0 * imgW; }; break;
-        case PlaceType::LEFT_TO_RIGHT: {imgW_dst = imgW * 3; }; break;
-        case PlaceType::RIGHT_TO_LEFT: {imgW_dst = imgW * 3; offsetX = -2.0 * imgW; }; break;
-        case PlaceType::UP_TO_DOWN: {imgH_dst = imgH * 3; offsetY = -2.0 * imgH; }; break;
-        case PlaceType::DOWN_TO_UP: {imgH_dst = imgH * 3; }; break;
-        }
 
         int egde_dist = 100;//排样到边缘最近距离为50单位
         if (input.size() == 1) egde_dist = 0;
@@ -176,8 +166,8 @@ namespace nestplacer
                 model_offset_y += center_offset_y;
                 TransMatrix itemTrans;
                 itemTrans.rotation = input[i].rotation().toDegrees();
-                itemTrans.x = model_offset_x + offsetX - 0.5 * imgW;
-                itemTrans.y = model_offset_y + offsetY - 0.5 * imgH;
+                itemTrans.x = model_offset_x + offsetX;
+                itemTrans.y = model_offset_y + offsetY;
                 transData[i] = itemTrans;
             }
         }
@@ -186,6 +176,7 @@ namespace nestplacer
         if (input_outer_items.size() == 1) return true;
         cfg.placer_config.object_function = NULL;
         cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         imgW_dst = imgW * 1001; imgH_dst = imgH * 1001;
         maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW / 2, imgH / 2 });
         std::size_t result_dst = libnest2d::nest(input_outer_items, maxBox, dist, cfg, ctl);
@@ -199,8 +190,8 @@ namespace nestplacer
                 libnest2d::Item& iitem_dst = input_outer_items.at(idx);
                 TransMatrix itemTrans;
                 itemTrans.rotation = iitem_dst.rotation().toDegrees();
-                itemTrans.x = iitem_dst.translation().X - 0.5 * imgW;
-                itemTrans.y = iitem_dst.translation().Y - 0.5 * imgH;
+                itemTrans.x = iitem_dst.translation().X;
+                itemTrans.y = iitem_dst.translation().Y;
                 transData[i] = itemTrans;
                 idx++;
             }
@@ -247,8 +238,8 @@ namespace nestplacer
         for (size_t i = 0; i < modelIndices.size(); i++)
         {
             trimesh::vec3 newBoxCenter;
-            newBoxCenter.x = transData.at(i).x / scaleFactor + 0.5 * imageW;
-            newBoxCenter.y = transData.at(i).y / scaleFactor + 0.5 * imageH;
+            newBoxCenter.x = transData.at(i).x / scaleFactor;
+            newBoxCenter.y = transData.at(i).y / scaleFactor;
             newBoxCenter.z = transData.at(i).rotation;
             int modelIndexI = modelIndices[i];
             modelPositionUpdateFunc(modelIndexI, newBoxCenter);
