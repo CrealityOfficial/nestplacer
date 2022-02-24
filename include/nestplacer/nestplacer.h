@@ -52,9 +52,11 @@ namespace nestplacer
 		NestPlacer();
 		~NestPlacer();
 	public:
-		static bool nest2d(Clipper3r::Paths ItemsPaths, int _imageW, int _imageH, int _dist, PlaceType placeType, std::vector<TransMatrix>& transData);
+		static bool nest2d(Clipper3r::Paths ItemsPaths, Clipper3r::cInt _imageW, Clipper3r::cInt _imageH, Clipper3r::cInt _dist, PlaceType placeType, std::vector<TransMatrix>& transData);
 		static void layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
 			std::vector < std::vector<trimesh::vec3>> models, PlaceType packType, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
+		static bool layout_new_item(std::vector < std::vector<trimesh::vec3>> models, std::vector<trimesh::vec3> transData, 
+			std::vector<trimesh::vec3> NewItem, trimesh::box3 workspaceBox, float dist, std::function<void(trimesh::vec3)> func);
 
 		static bool nest2d(std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func);
 		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceOneFunc func);

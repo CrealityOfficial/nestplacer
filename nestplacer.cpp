@@ -18,7 +18,7 @@ namespace nestplacer
 
 	}
 
-    bool NestPlacer::nest2d(Clipper3r::Paths ItemsPaths, int _imageW, int _imageH, int _dist, PlaceType placeType, std::vector<TransMatrix>& transData)
+    bool NestPlacer::nest2d(Clipper3r::Paths ItemsPaths, Clipper3r::cInt _imageW, Clipper3r::cInt _imageH, Clipper3r::cInt _dist, PlaceType placeType, std::vector<TransMatrix>& transData)
     {
         if (ItemsPaths.size() == 2 && placeType != PlaceType::ONELINE)
             placeType = PlaceType::CENTER_TO_SIDE;
@@ -105,24 +105,20 @@ namespace nestplacer
             input.push_back(libnest2d::Item(ItemPath));
         }
 
-        Clipper3r::cInt imgW = _imageW;   //排样区域宽
-        Clipper3r::cInt imgH = _imageH;   //排样区域高
-        Clipper3r::cInt dist = _dist;     //排样间距
-
-        Clipper3r::cInt imgW_dst = imgW, imgH_dst = imgH;
+        Clipper3r::cInt imgW_dst = _imageW, imgH_dst = _imageH;
 
         double offsetX = 0., offsetY = 0.;
 
         int egde_dist = 100;//排样到边缘最近距离为50单位
         if (input.size() == 1) egde_dist = 0;
-        if (egde_dist > dist) egde_dist = dist;
-        imgW_dst += dist - egde_dist;
-        imgH_dst += dist - egde_dist;
-        offsetX += (dist - egde_dist) / 2;
-        offsetY += (dist - egde_dist) / 2;
+        if (egde_dist > _dist) egde_dist = _dist;
+        imgW_dst += _dist - egde_dist;
+        imgH_dst += _dist - egde_dist;
+        offsetX += (_dist - egde_dist) / 2;
+        offsetY += (_dist - egde_dist) / 2;
 
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
-        std::size_t result = libnest2d::nest(input, maxBox, dist, cfg, ctl);//只能处理凸包
+        std::size_t result = libnest2d::nest(input, maxBox, _dist, cfg, ctl);//只能处理凸包
 
 
         Clipper3r::Clipper a;
@@ -136,17 +132,17 @@ namespace nestplacer
             }
         }
         Clipper3r::IntRect ibb_dst = a.GetBounds();
-        int center_offset_x = 0.5 * imgW - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
-        int center_offset_y = 0.5 * imgH - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
+        int center_offset_x = 0.5 * _imageW - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
+        int center_offset_y = 0.5 * _imageH - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
         if (placeType == PlaceType::ONELINE) center_offset_y = -ibb_dst.top - offsetY;
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
-                {0, imgH},
-                {imgW, imgH},
-                {imgW, 0},
+                {0, _imageH},
+                {_imageW, _imageH},
+                {_imageW, 0},
                 {0, 0},
-                {0, imgH}
+                {0, _imageH}
             });//定义第一个轮廓遮挡中心排样区域
 
         input_outer_items[0].translation({ 1, 0 }); //packed mark
@@ -180,9 +176,9 @@ namespace nestplacer
         cfg.placer_config.object_function = NULL;
         cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
-        imgW_dst = imgW * 1001; imgH_dst = imgH * 1001;
-        maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW / 2, imgH / 2 });
-        std::size_t result_dst = libnest2d::nest(input_outer_items, maxBox, dist, cfg, ctl);
+        imgW_dst = _imageW * 1001; imgH_dst = _imageH * 1001;
+        maxBox = libnest2d::Box(imgW_dst, imgH_dst, { _imageW / 2, _imageH / 2 });
+        std::size_t result_dst = libnest2d::nest(input_outer_items, maxBox, _dist, cfg, ctl);
         int idx = 1;
         for (int i = 0; i < size; i++)
         {
@@ -247,6 +243,8 @@ namespace nestplacer
         }
 
     }
+
+
 
     TransMatrix getTransMatrixFromItem(libnest2d::Item iitem, Clipper3r::cInt offsetX, Clipper3r::cInt offsetY)
     {
@@ -338,16 +336,6 @@ namespace nestplacer
         Clipper3r::cInt imgW_dst = w, imgH_dst = h;
 
         double offsetX = 0., offsetY = 0.;
-        //switch (type)  //排样区域放大适配
-        //{
-        //case PlaceType::CENTER_TO_SIDE: {imgW_dst = w * 3; imgH_dst = h * 3; offsetX = -1.0 * w; offsetY = -1.0 * h; }; break;
-        //case PlaceType::MID_TO_UP_DOWN: {imgH_dst = h * 3;  offsetY = -1.0 * h; }; break;
-        //case PlaceType::MID_TO_LEFT_RIGHT: {imgW_dst = w * 3; offsetX = -1.0 * w; }; break;
-        //case PlaceType::LEFT_TO_RIGHT: {imgW_dst = w * 3; }; break;
-        //case PlaceType::RIGHT_TO_LEFT: {imgW_dst = w * 3; offsetX = -2.0 * w; }; break;
-        //case PlaceType::UP_TO_DOWN: {imgH_dst = h * 3; offsetY = -2.0 * h; }; break;
-        //case PlaceType::DOWN_TO_UP: {imgH_dst = h * 3; }; break;
-        //}
 
         int egde_dist = 100;//排样到边缘最近距离为50单位
         if (nestItems.size() == 1) egde_dist = 0;
@@ -528,6 +516,104 @@ namespace nestplacer
         else
         {         
             func(getTransMatrixFromItem(iitem, 0, 0));
+            return true;
+        }
+
+        return false;
+    }
+
+    Clipper3r::Path ItemPathDataTrans(std::vector<trimesh::vec3> model)
+    {
+        Clipper3r::Path result;
+        for (trimesh::vec3 pt : model)
+        {
+            Clipper3r::IntPoint pt_t;
+            pt_t.X = pt.x * FACTOR;
+            pt_t.Y = pt.y * FACTOR;
+            result.push_back(pt_t);
+        }
+        if (Clipper3r::Orientation(result))
+        {
+            Clipper3r::ReversePath(result);
+        }
+        result = libnest2d::shapelike::convexHull(result);
+        return result;
+    }
+
+    bool NestPlacer::layout_new_item(std::vector < std::vector<trimesh::vec3>> models, std::vector<trimesh::vec3> transData,
+        std::vector<trimesh::vec3> NewItem, trimesh::box3 workspaceBox, float dist, std::function<void(trimesh::vec3)> func)
+    {
+        Clipper3r::cInt w = (workspaceBox.max.x - workspaceBox.min.x) * FACTOR;
+        Clipper3r::cInt h = (workspaceBox.max.y - workspaceBox.min.y) * FACTOR;
+        Clipper3r::cInt d = dist * FACTOR;
+
+        Clipper3r::cInt offsetX = 0, offsetY = 0;
+        int egde_dist = 100;
+        if (egde_dist > d) egde_dist = d;
+        offsetX += (d - egde_dist) / 2;
+        offsetY += (d - egde_dist) / 2;
+
+        libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
+        InitCfg(cfg);
+        std::vector<libnest2d::Item> input;
+        std::vector<libnest2d::Item> input_out_pack;
+        for (int i = 0; i < models.size(); i++)
+        {
+            std::vector<trimesh::vec3> model = models[i];
+            Clipper3r::Path ItemPath = ItemPathDataTrans(model);
+            libnest2d::Item item = libnest2d::Item(ItemPath);
+            trimesh::vec3 trans_data = transData[i];
+            item.translation({ Clipper3r::cInt(trans_data.x * FACTOR), Clipper3r::cInt(trans_data.y * FACTOR) });
+            float rot = trans_data.z;
+            item.rotation(libnest2d::Radians(rot));
+            auto trans_item = item.transformedShape_s();
+            if (bOnTheEdge(trans_item.Contour, w, h) == 2)
+            {
+                item.translation(item.translation());
+                input.push_back(item);
+            }
+            else
+            {
+                input_out_pack.push_back(item);
+            }
+        }
+
+        libnest2d::Item newItem = libnest2d::Item(ItemPathDataTrans(NewItem));
+
+        bool can_pack = false;
+        newItem.translation({ w / 2, h / 2 });
+        for (auto rot : cfg.placer_config.rotations) {
+            newItem.rotation(rot);
+            auto trans_item = newItem.transformedShape_s();
+            if (bOnTheEdge(trans_item.Contour, w, h) == 2)
+            {
+                can_pack = true;
+                break;
+            }
+        }
+        if (!can_pack)
+            return false;
+        newItem.translation({ 0, 0 });
+        input.push_back(newItem);
+
+        Clipper3r::cInt imgW_dst = w, imgH_dst = h;
+        libnest2d::Box maxBox = libnest2d::Box(imgW_dst + 2 * offsetX, imgH_dst + 2 * offsetY, { w / 2, h / 2 });
+        std::size_t result = libnest2d::nest(input, maxBox, d, cfg, libnest2d::NestControl());
+
+        int total_size = input.size();
+        libnest2d::Item iitem = input.at(total_size - 1);
+        if (iitem.rotation().toDegrees() == -90.)
+        {
+            iitem.rotation(0);
+            iitem.translation({ 0, 0 });
+        }
+        else
+        {
+            trimesh::vec3 itemTrans;
+            itemTrans.x = iitem.translation().X / FACTOR;
+            itemTrans.y = iitem.translation().Y / FACTOR;
+            itemTrans.z = iitem.rotation().toDegrees();
+            func(itemTrans);
             return true;
         }
 
