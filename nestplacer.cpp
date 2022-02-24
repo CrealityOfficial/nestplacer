@@ -20,12 +20,13 @@ namespace nestplacer
 
     bool NestPlacer::nest2d(Clipper3r::Paths ItemsPaths, int _imageW, int _imageH, int _dist, PlaceType placeType, std::vector<TransMatrix>& transData)
     {
+        bool bCR_30 = _imageW / _imageH > 10 || _imageH / _imageW > 10;
         if (ItemsPaths.size() == 2)
             placeType = PlaceType::CENTER_TO_SIDE;
+        if(bCR_30) placeType = PlaceType::ONELINE;
 
         size_t size = ItemsPaths.size();
         transData.resize(size);
-
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
 
@@ -43,8 +44,10 @@ namespace nestplacer
             //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
         case PlaceType::UP_TO_DOWN: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT; break;
             //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
-        case PlaceType::DOWN_TO_UP: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT; break;
+        case PlaceType::DOWN_TO_UP: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
             //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+        case PlaceType::ONELINE: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
+            //单列排样
         }
 
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
@@ -70,8 +73,9 @@ namespace nestplacer
             case PlaceType::MID_TO_LEFT_RIGHT: return 5; break;
             case PlaceType::LEFT_TO_RIGHT: return 6; break;
             case PlaceType::RIGHT_TO_LEFT: return 7; break;
-            case PlaceType::DOWN_TO_UP: return 8; break;
-            case PlaceType::UP_TO_DOWN: return 9; break;
+            case PlaceType::UP_TO_DOWN: return 8; break;
+            case PlaceType::DOWN_TO_UP: return 9; break;
+            case PlaceType::ONELINE: return 10; break;
             }
         };
 
@@ -136,6 +140,7 @@ namespace nestplacer
         Clipper3r::IntRect ibb_dst = a.GetBounds();
         int center_offset_x = 0.5 * imgW - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
         int center_offset_y = 0.5 * imgH - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
+        if (bCR_30) center_offset_y = -ibb_dst.top - offsetY;
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
@@ -204,7 +209,6 @@ namespace nestplacer
     void NestPlacer::layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
         std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
     {
-        double scaleFactor = 10000.0;
         trimesh::box3 basebox = workspaceBox;
         double imageW = basebox.max.x - basebox.min.x;
         double imageH = basebox.max.y - basebox.min.y;
@@ -219,15 +223,15 @@ namespace nestplacer
             oItem.resize(m_size);
             for (int i = 0; i < m_size; i++)
             {
-                oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * scaleFactor);
-                oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * scaleFactor);
+                oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
+                oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
             }
             allItem.push_back(oItem);
         }
 
-        int _imageW = (basebox.max.x - basebox.min.x) * scaleFactor;
-        int _imageH = (basebox.max.y - basebox.min.y) * scaleFactor;
-        int _dist = dist * scaleFactor;
+        int _imageW = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
+        int _imageH = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
+        int _dist = dist * NEST_FACTOR;
 
         std::vector<TransMatrix> transData;
         PlaceType packType = PlaceType::CENTER_TO_SIDE;
@@ -238,8 +242,8 @@ namespace nestplacer
         for (size_t i = 0; i < modelIndices.size(); i++)
         {
             trimesh::vec3 newBoxCenter;
-            newBoxCenter.x = transData.at(i).x / scaleFactor;
-            newBoxCenter.y = transData.at(i).y / scaleFactor;
+            newBoxCenter.x = transData.at(i).x / NEST_FACTOR;
+            newBoxCenter.y = transData.at(i).y / NEST_FACTOR;
             newBoxCenter.z = transData.at(i).rotation;
             int modelIndexI = modelIndices[i];
             modelPositionUpdateFunc(modelIndexI, newBoxCenter);
