@@ -20,10 +20,8 @@ namespace nestplacer
 
     bool NestPlacer::nest2d(Clipper3r::Paths ItemsPaths, int _imageW, int _imageH, int _dist, PlaceType placeType, std::vector<TransMatrix>& transData)
     {
-        bool bCR_30 = _imageW / _imageH > 10 || _imageH / _imageW > 10;
-        if (ItemsPaths.size() == 2)
+        if (ItemsPaths.size() == 2 && placeType != PlaceType::ONELINE)
             placeType = PlaceType::CENTER_TO_SIDE;
-        if(bCR_30) placeType = PlaceType::ONELINE;
 
         size_t size = ItemsPaths.size();
         transData.resize(size);
@@ -140,7 +138,7 @@ namespace nestplacer
         Clipper3r::IntRect ibb_dst = a.GetBounds();
         int center_offset_x = 0.5 * imgW - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
         int center_offset_y = 0.5 * imgH - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
-        if (bCR_30) center_offset_y = -ibb_dst.top - offsetY;
+        if (placeType == PlaceType::ONELINE) center_offset_y = -ibb_dst.top - offsetY;
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
@@ -207,7 +205,7 @@ namespace nestplacer
 
 
     void NestPlacer::layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
-        std::vector < std::vector<trimesh::vec3>> models, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
+        std::vector < std::vector<trimesh::vec3>> models, PlaceType packType, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
     {
         trimesh::box3 basebox = workspaceBox;
         double imageW = basebox.max.x - basebox.min.x;
@@ -234,7 +232,6 @@ namespace nestplacer
         int _dist = dist * NEST_FACTOR;
 
         std::vector<TransMatrix> transData;
-        PlaceType packType = PlaceType::CENTER_TO_SIDE;
         nest2d(allItem, _imageW, _imageH, _dist, packType, transData);
 
         /////settle models that can be settled inside
