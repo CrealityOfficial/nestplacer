@@ -498,7 +498,11 @@ namespace nestplacer
             }
         }
         if (!can_pack)
+        {
+            func(TransMatrix());
             return false;
+        }
+
         newItem.translation({ 0, 0 });
         input.push_back(newItem);
 
@@ -519,6 +523,7 @@ namespace nestplacer
             return true;
         }
 
+        func(TransMatrix());
         return false;
     }
 
@@ -592,7 +597,11 @@ namespace nestplacer
             }
         }
         if (!can_pack)
+        {
+            func(trimesh::vec3());
             return false;
+        }
+
         newItem.translation({ 0, 0 });
         input.push_back(newItem);
 
@@ -617,6 +626,7 @@ namespace nestplacer
             return true;
         }
 
+        func(trimesh::vec3());
         return false;
     }
 }
