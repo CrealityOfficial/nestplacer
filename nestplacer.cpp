@@ -360,8 +360,9 @@ namespace nestplacer
             }
         }
         Clipper3r::IntRect ibb_dst = a.GetBounds();
-        int center_offset_x = 0;// .5 * w - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
-        int center_offset_y = 0;// .5 * h - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
+        int center_offset_x = 0.5 * w - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
+        int center_offset_y = 0.5 * h - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
+        if (type == PlaceType::ONELINE) center_offset_y = -ibb_dst.top - offsetY;
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
@@ -458,7 +459,16 @@ namespace nestplacer
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
         InitCfg(cfg);
         std::vector<libnest2d::Item> input;
-        std::vector<libnest2d::Item> input_out_pack;
+        std::vector<libnest2d::Item> input_out_pack(1,
+            {
+                {0, h},
+                {w, h},
+                {w, 0},
+                {0, 0},
+                {0, h}
+            });//定义第一个轮廓遮挡中心排样区域
+        input_out_pack[0].translation({ 1, 0 }); //packed mark
+
         for (NestItemer* itemer : items)
         {
             Clipper3r::Path ItemPath = itemer->path();
@@ -516,6 +526,7 @@ namespace nestplacer
         {
             iitem.rotation(0);
             iitem.translation({ 0, 0 });
+            input_out_pack.push_back(iitem);
         }
         else
         {         
@@ -523,7 +534,14 @@ namespace nestplacer
             return true;
         }
 
-        func(TransMatrix());
+        cfg.placer_config.object_function = NULL;
+        cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        imgW_dst = w * 1001; imgH_dst = h * 1001;
+        maxBox = libnest2d::Box(imgW_dst, imgH_dst, { w / 2, h / 2 });
+        result |= libnest2d::nest(input_out_pack, maxBox, d, cfg, libnest2d::NestControl());
+        iitem = input_out_pack.at(input_out_pack.size() - 1);
+
+        func(getTransMatrixFromItem(iitem, 0, 0));
         return false;
     }
 
