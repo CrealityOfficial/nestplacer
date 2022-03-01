@@ -18,7 +18,8 @@ namespace nestplacer
 
 	}
 
-    bool NestPlacer::nest2d(Clipper3r::Paths ItemsPaths, Clipper3r::cInt _imageW, Clipper3r::cInt _imageH, Clipper3r::cInt _dist, PlaceType placeType, std::vector<TransMatrix>& transData)
+    bool NestPlacer::nest2d(Clipper3r::Paths ItemsPaths, Clipper3r::cInt _imageW, Clipper3r::cInt _imageH, Clipper3r::cInt _dist,
+        PlaceType placeType, std::vector<TransMatrix>& transData)
     {
         if (ItemsPaths.size() == 2 && placeType != PlaceType::ONELINE)
             placeType = PlaceType::CENTER_TO_SIDE;
@@ -52,9 +53,9 @@ namespace nestplacer
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
+        cfg.placer_config.parallel = false;  //启用单线程
         //cfg.placer_config.accuracy; //优化率 
         //cfg.placer_config.explore_holes;  //孔内是否放置图元,目前源码中还未实现
-        //cfg.placer_config.parallel;  //启用多线程
         //cfg.placer_config.before_packing; //摆放下一个Item之前，先对前面已经摆放好的Item进行调整的函数，若为空，则Item拍好位置后将不再变动。传入函数接口
         //cfg.placer_config.object_function;  //添加优化方向，向函数输出值最小化优化，以此改变排放方式，传入函数接口
 
@@ -269,21 +270,21 @@ namespace nestplacer
 
     void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg)
     {
-        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
+        //cfg.placer_config.parallel = false;  //启用单线程
         //cfg.placer_config.accuracy; //优化率 
         //cfg.placer_config.explore_holes;  //孔内是否放置图元,目前源码中还未实现
-        //cfg.placer_config.parallel;  //启用多线程
         //cfg.placer_config.before_packing; //摆放下一个Item之前，先对前面已经摆放好的Item进行调整的函数，若为空，则Item拍好位置后将不再变动。传入函数接口
         //cfg.placer_config.object_function;  //添加优化方向，向函数输出值最小化优化，以此改变排放方式，传入函数接口
 
         //cfg.selector_config;
     }
 
-    bool NestPlacer::nest2d(std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func)
+    bool NestPlacer::nest2d(std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, 
+        Clipper3r::cInt d, PlaceType type, PlaceFunc func)
     {
         std::vector<TransMatrix> transData;
         std::vector<libnest2d::Item> nestItems;
@@ -300,6 +301,7 @@ namespace nestplacer
 
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
+        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         InitCfg(cfg);
 
         switch (type)
@@ -317,6 +319,8 @@ namespace nestplacer
             //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
         case PlaceType::DOWN_TO_UP: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT; break;
             //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
+        case PlaceType::ONELINE: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
+            //单列排样
         }
 
         cfg.placer_config.object_function = [type](const libnest2d::Item&)  //优化方向
@@ -330,6 +334,7 @@ namespace nestplacer
             case PlaceType::RIGHT_TO_LEFT: return 7; break;
             case PlaceType::DOWN_TO_UP: return 8; break;
             case PlaceType::UP_TO_DOWN: return 9; break;
+            case PlaceType::ONELINE: return 10; break;
             }
         };
 
@@ -395,6 +400,7 @@ namespace nestplacer
         {
             cfg.placer_config.object_function = NULL;
             cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+            cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
             imgW_dst = w * 1001; imgH_dst = h * 1001;
             maxBox = libnest2d::Box(imgW_dst, imgH_dst, { w / 2, h / 2 });
             nestResult |= libnest2d::nest(input_outer_items, maxBox, d, cfg, libnest2d::NestControl());
@@ -457,6 +463,7 @@ namespace nestplacer
         offsetY += (d - egde_dist) / 2;
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
+        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         InitCfg(cfg);
         std::vector<libnest2d::Item> input;
         std::vector<libnest2d::Item> input_out_pack(1,
@@ -577,6 +584,7 @@ namespace nestplacer
         offsetY += (d - egde_dist) / 2;
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
+        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         InitCfg(cfg);
         std::vector<libnest2d::Item> input;
         std::vector<libnest2d::Item> input_out_pack;
