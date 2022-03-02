@@ -101,7 +101,7 @@ namespace nestplacer
         return newItemPath;
     }
 
-    Clipper3r::Path ItemPathDataTrans(std::vector<trimesh::vec3> model)
+    Clipper3r::Path ItemPathDataTrans(std::vector<trimesh::vec3> model, bool pretreatment)
     {
         Clipper3r::Path result;
         for (trimesh::vec3 pt : model)
@@ -111,11 +111,14 @@ namespace nestplacer
             pt_t.Y = pt.y * NEST_FACTOR;
             result.push_back(pt_t);
         }
-        if (Clipper3r::Orientation(result))
+        if (pretreatment)
         {
-            Clipper3r::ReversePath(result);
+            if (Clipper3r::Orientation(result))
+            {
+                Clipper3r::ReversePath(result);
+            }
+            result = libnest2d::shapelike::convexHull(result);
         }
-        result = libnest2d::shapelike::convexHull(result);
         return result;
     }
 
@@ -442,10 +445,10 @@ namespace nestplacer
         for (int i = 0; i < models.size(); i++)
         {
             std::vector<trimesh::vec3> model = models[i];
-            ItemsPaths.push_back(ItemPathDataTrans(model));
+            ItemsPaths.push_back(ItemPathDataTrans(model, true));
         }
-        Clipper3r::Path transData_cInt = ItemPathDataTrans(transData);
-        Clipper3r::Path newItemPath = ItemPathDataTrans(NewItem);
+        Clipper3r::Path transData_cInt = ItemPathDataTrans(transData, false);
+        Clipper3r::Path newItemPath = ItemPathDataTrans(NewItem, true);
         TransMatrix NewItemTransData;
         bool can_pack = nest2d_base(ItemsPaths, transData_cInt, newItemPath, para_cInt, NewItemTransData);
 
