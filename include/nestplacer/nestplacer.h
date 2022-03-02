@@ -18,7 +18,8 @@ namespace nestplacer
 		RIGHT_TO_LEFT,
 		UP_TO_DOWN,
 		DOWN_TO_UP,
-		ONELINE
+		ONELINE,
+		NULLTYPE
 	};
 
 	struct TransMatrix
@@ -32,6 +33,57 @@ namespace nestplacer
 			x = 0;
 			y = 0;
 			rotation = 0.;
+		}
+	};
+
+	struct NestParaCInt
+	{
+		Clipper3r::cInt workspaceW; //Æ½Ì¨¿í
+		Clipper3r::cInt workspaceH; 
+		Clipper3r::cInt modelsDist;
+		PlaceType packType;
+		bool parallel;
+
+		NestParaCInt()
+		{
+			packType = PlaceType::CENTER_TO_SIDE;
+			modelsDist = 0;  
+			workspaceW = 0;
+			workspaceH = 0;
+			parallel = true;
+		}
+
+		NestParaCInt(Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt dist, PlaceType type, bool _parallel)
+		{
+			workspaceW = w;
+			workspaceH = h;
+			modelsDist = dist;
+			packType = type;
+			parallel = _parallel;
+		}
+	};
+
+	struct NestParaFloat
+	{
+		trimesh::box3 workspaceBox;
+		float modelsDist;
+		PlaceType packType;
+		bool parallel;
+
+		NestParaFloat()
+		{
+			workspaceBox = trimesh::box3();
+			packType = PlaceType::CENTER_TO_SIDE;
+			modelsDist = 0.f;
+			parallel = true;
+		}
+
+		NestParaFloat(trimesh::box3 workspace, float dist, PlaceType type, bool _parallel)
+		{
+			workspaceBox = workspace;
+			modelsDist = dist;
+			packType = type;
+			parallel = _parallel;
 		}
 	};
 
@@ -52,15 +104,16 @@ namespace nestplacer
 		NestPlacer();
 		~NestPlacer();
 	public:
-		static bool nest2d(Clipper3r::Paths ItemsPaths, Clipper3r::cInt _imageW, Clipper3r::cInt _imageH, Clipper3r::cInt _dist, PlaceType placeType, std::vector<TransMatrix>& transData);
-		static void layout_all_nest(trimesh::box3 workspaceBox, std::vector<int> modelIndices,
-			std::vector < std::vector<trimesh::vec3>> models, PlaceType packType, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
+		static void layout_all_nest(std::vector < std::vector<trimesh::vec3>> models, std::vector<int> modelIndices, 
+			NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
 		static bool layout_new_item(std::vector < std::vector<trimesh::vec3>> models, std::vector<trimesh::vec3> transData, 
-			std::vector<trimesh::vec3> NewItem, trimesh::box3 workspaceBox, float dist, std::function<void(trimesh::vec3)> func);
+			std::vector<trimesh::vec3> NewItem, NestParaFloat para, std::function<void(trimesh::vec3)> func);
 
-		static bool nest2d(std::vector<NestItemer*>& items, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceFunc func);
-		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt d, PlaceType type, PlaceOneFunc func);
+		static bool nest2d(std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func);
+		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func);
 	private:
+		static bool nest2d_base(Clipper3r::Paths ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData);
+		static bool nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData);
 	};
 }
 
