@@ -24,31 +24,13 @@ namespace nestplacer
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
         cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
         cfg.placer_config.parallel = parallel;  //启用单线程
+        cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         //cfg.placer_config.accuracy; //优化率 
         //cfg.placer_config.explore_holes;  //孔内是否放置图元,目前源码中还未实现
         //cfg.placer_config.before_packing; //摆放下一个Item之前，先对前面已经摆放好的Item进行调整的函数，若为空，则Item拍好位置后将不再变动。传入函数接口
         //cfg.placer_config.object_function;  //添加优化方向，向函数输出值最小化优化，以此改变排放方式，传入函数接口
 
         //cfg.selector_config;
-
-        switch (type)
-        {
-        case PlaceType::CENTER_TO_SIDE: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
-        case PlaceType::MID_TO_UP_DOWN: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
-            //从Y中轴线向上下两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-        case PlaceType::MID_TO_LEFT_RIGHT: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
-            //从X中轴线向左右两方向排样，starting_point = CENTER，alignment = DONT_ALIGN或alignment = CENTER
-        case PlaceType::LEFT_TO_RIGHT: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT; break;
-            //从X轴0向右方向排样，starting_point = BOTTOM_LEFT或starting_point = TOP_LEFT，alignment = DONT_ALIGN
-        case PlaceType::RIGHT_TO_LEFT: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_RIGHT; break;
-            //从X轴max向左方向排样，starting_point = BOTTOM_RIGHT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-        case PlaceType::UP_TO_DOWN: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT; break;
-            //从Y轴0向下方向排样，starting_point = BOTTOM_LEFT或starting_point = BOTTOM_RIGHT，alignment = DONT_ALIGN
-        case PlaceType::DOWN_TO_UP: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
-            //从Y轴max向上方向排样，starting_point = TOP_LEFT或starting_point = TOP_RIGHT，alignment = DONT_ALIGN
-        case PlaceType::ONELINE: cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER; break;
-            //单列排样
-        }
 
         if (type != PlaceType::NULLTYPE)
         {
@@ -57,13 +39,8 @@ namespace nestplacer
                 switch (type)
                 {
                 case PlaceType::CENTER_TO_SIDE: return 3; break;
-                case PlaceType::MID_TO_UP_DOWN: return 4; break;
-                case PlaceType::MID_TO_LEFT_RIGHT: return 5; break;
-                case PlaceType::LEFT_TO_RIGHT: return 6; break;
-                case PlaceType::RIGHT_TO_LEFT: return 7; break;
-                case PlaceType::UP_TO_DOWN: return 8; break;
-                case PlaceType::DOWN_TO_UP: return 9; break;
-                case PlaceType::ONELINE: return 10; break;
+                case PlaceType::ALIGNMENT: return 4; break;
+                case PlaceType::ONELINE: return 5; break;
                 }
             };
         }
@@ -147,37 +124,36 @@ namespace nestplacer
     bool NestPlacer::nest2d_base(Clipper3r::Paths ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData)
     {
         PlaceType tpye = para.packType;
-        if (ItemsPaths.size() == 2 && tpye != PlaceType::ONELINE)
-            tpye = PlaceType::CENTER_TO_SIDE;
-
         size_t size = ItemsPaths.size();
         transData.resize(size);
 
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
-        InitCfg(cfg, para.packType, para.parallel);
+        InitCfg(cfg, tpye, para.parallel);
         cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
-        auto convert = [&ItemsPaths](Clipper3r::Path& oItem, int index) {
+        auto convert = [&ItemsPaths, tpye](Clipper3r::Path& oItem, int index) {
             Clipper3r::Path lines = ItemsPaths.at(index);
-            size_t size = lines.size();
-            if (size > 0)
-            {
-                oItem.resize(size);
-                for (size_t i = 0; i < size; ++i)
-                {
-                    oItem.at(i).X = (Clipper3r::cInt)(lines.at(i).X);
-                    oItem.at(i).Y = (Clipper3r::cInt)(lines.at(i).Y);
-                }
-            }
+            Clipper3r::Clipper a;
+            a.AddPath(lines, Clipper3r::ptSubject, true);
+            Clipper3r::IntRect r = a.GetBounds();
+            oItem.resize(4);
+            oItem[0] = Clipper3r::IntPoint(r.left, r.bottom);
+            oItem[1] = Clipper3r::IntPoint(r.right, r.bottom);
+            oItem[2] = Clipper3r::IntPoint(r.right, r.top);
+            oItem[3] = Clipper3r::IntPoint(r.left, r.top);
         };
 
         std::vector<libnest2d::Item> input;
         for (int i = 0; i < size; i++)
         {
             Clipper3r::Path ItemPath;
-            convert(ItemPath, i);
-
+            if (tpye == PlaceType::ALIGNMENT) convert(ItemPath, i);
+            else
+            {
+                ItemPath = ItemsPaths[i];
+            }
+                
             if (Clipper3r::Orientation(ItemPath))
             {
                 Clipper3r::ReversePath(ItemPath);//正轮廓倒序

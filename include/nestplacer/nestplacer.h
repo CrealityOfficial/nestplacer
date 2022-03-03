@@ -12,12 +12,7 @@ namespace nestplacer
 {
 	enum class PlaceType {
 		CENTER_TO_SIDE,
-		MID_TO_UP_DOWN,
-		MID_TO_LEFT_RIGHT,
-		LEFT_TO_RIGHT,
-		RIGHT_TO_LEFT,
-		UP_TO_DOWN,
-		DOWN_TO_UP,
+		ALIGNMENT,
 		ONELINE,
 		NULLTYPE
 	};
