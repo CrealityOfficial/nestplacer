@@ -8,13 +8,12 @@ if(NOT WIN32)
 	add_definitions(-DHAVE_PTHREADS)
 endif()
 
+set(LIBS libnest2d clipper3r nlopt trimesh2)
+
 if(TARGET  OpenMP::OpenMP_CXX)
 	message(STATUS "build nestplacer use openmp")
 	list(APPEND LIBS OpenMP::OpenMP_CXX)
 endif()
-
-set(LIBS libnest2d clipper3r nlopt trimesh2)
-
 if(BUILD_NESTPLACER_STATIC)
     __add_real_target(nestplacer lib SOURCE ${SRCS}
                                 LIB ${LIBS}
