@@ -7,7 +7,7 @@ if(NOT WIN32)
 	add_compile_options(-fPIC)
 	add_definitions(-DHAVE_PTHREADS)
 endif()
-set(LIBS libnest2d clipper3r nlopt trimesh2)
+set(LIBS libnest2d clipper3r nlopt trimesh2 OpenMP::OpenMP_CXX)
 
 if(BUILD_NESTPLACER_STATIC)
     __add_real_target(nestplacer lib SOURCE ${SRCS}
@@ -23,6 +23,3 @@ else()
                                 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 endif()
 
-if(APPLE)
-    __add_openmp_lib(nestplacer)
-endif()
