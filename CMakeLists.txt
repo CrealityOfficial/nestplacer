@@ -28,3 +28,6 @@ else()
                                 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 endif()
 
+if(CC_INSTALL_NESTPLACER)
+	__install_directory_specif(${CMAKE_CURRENT_SOURCE_DIR}/include/ nestplacer)
+endif()
