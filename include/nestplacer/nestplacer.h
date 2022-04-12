@@ -14,6 +14,7 @@ namespace nestplacer
 		CENTER_TO_SIDE,
 		ALIGNMENT,
 		ONELINE,
+		CONCAVE,
 		NULLTYPE
 	};
 
@@ -106,7 +107,7 @@ namespace nestplacer
 
 		static bool nest2d(std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func);
 		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func);
-	private:
+
 		static bool nest2d_base(Clipper3r::Paths ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData);
 		static bool nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData);
 	};

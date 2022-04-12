@@ -41,6 +41,7 @@ namespace nestplacer
                 case PlaceType::CENTER_TO_SIDE: return 3; break;
                 case PlaceType::ALIGNMENT: return 4; break;
                 case PlaceType::ONELINE: return 5; break;
+                case PlaceType::CONCAVE: return 6; break;
                 }
             };
         }
@@ -54,23 +55,14 @@ namespace nestplacer
         itemTrans.y = iitem.translation().Y + offsetY;
         return itemTrans;
     }
-
-    libnest2d::Item getItem(NestItemer* itemer)
-    {
-        Clipper3r::Path newItemPath;
-        newItemPath = libnest2d::shapelike::convexHull(itemer->path());
-        if (Clipper3r::Orientation(newItemPath))
-        {
-            Clipper3r::ReversePath(newItemPath);
-        }
-        libnest2d::Item item = libnest2d::Item(newItemPath);
-        return item;
-    }
     
-    Clipper3r::Path getItemPath(NestItemer* itemer)
+    Clipper3r::Path getItemPath(NestItemer* itemer, PlaceType type)
     {
         Clipper3r::Path newItemPath;
-        newItemPath = libnest2d::shapelike::convexHull(itemer->path());
+        if (type != PlaceType::CONCAVE) 
+            newItemPath = libnest2d::shapelike::convexHull(itemer->path());
+        else
+            newItemPath = itemer->path();
         if (Clipper3r::Orientation(newItemPath))
         {
             Clipper3r::ReversePath(newItemPath);
@@ -123,16 +115,16 @@ namespace nestplacer
 
     bool NestPlacer::nest2d_base(Clipper3r::Paths ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData)
     {
-        PlaceType tpye = para.packType;
+        PlaceType type = para.packType;
         size_t size = ItemsPaths.size();
         transData.resize(size);
 
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
-        InitCfg(cfg, tpye, para.parallel);
+        InitCfg(cfg, type, para.parallel);
         cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
-        auto convert = [&ItemsPaths, tpye](Clipper3r::Path& oItem, int index) {
+        auto convert = [&ItemsPaths, type](Clipper3r::Path& oItem, int index) {
             Clipper3r::Path lines = ItemsPaths.at(index);
             Clipper3r::Clipper a;
             a.AddPath(lines, Clipper3r::ptSubject, true);
@@ -148,7 +140,7 @@ namespace nestplacer
         for (int i = 0; i < size; i++)
         {
             Clipper3r::Path ItemPath;
-            if (tpye == PlaceType::ALIGNMENT) convert(ItemPath, i);
+            if (type == PlaceType::ALIGNMENT) convert(ItemPath, i);
             else
             {
                 ItemPath = ItemsPaths[i];
@@ -158,8 +150,10 @@ namespace nestplacer
             {
                 Clipper3r::ReversePath(ItemPath);//正轮廓倒序
             }
-            ItemPath = libnest2d::shapelike::convexHull(ItemPath);//仅支持凸轮廓排样
-            input.push_back(libnest2d::Item(ItemPath));
+            if (type != PlaceType::CONCAVE) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
+            libnest2d::Item item = libnest2d::Item(ItemPath);
+            if (type == PlaceType::CONCAVE) item.convexCal(false);
+            input.push_back(item);
         }
 
         Clipper3r::cInt imgW_dst = para.workspaceW, imgH_dst = para.workspaceH;
@@ -191,7 +185,7 @@ namespace nestplacer
         Clipper3r::IntRect ibb_dst = a.GetBounds();
         int center_offset_x = 0.5 * para.workspaceW - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
         int center_offset_y = 0.5 * para.workspaceH - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
-        if (tpye == PlaceType::ONELINE) center_offset_y = -ibb_dst.top - offsetY;
+        if (type == PlaceType::ONELINE) center_offset_y = -ibb_dst.top - offsetY;
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
@@ -203,7 +197,7 @@ namespace nestplacer
             });//定义第一个轮廓遮挡中心排样区域
 
         input_outer_items[0].translation({ 1, 0 }); //packed mark
-
+        if (type == PlaceType::CONCAVE) input_outer_items[0].convexCal(false);
         for (int i = 0; i < size; i++)
         {
             libnest2d::Item& iitem = input.at(i);
@@ -300,7 +294,7 @@ namespace nestplacer
     {
         Clipper3r::Paths ItemsPaths;
         for (NestItemer* itemer : items)
-            ItemsPaths.emplace_back(getItemPath(itemer));
+            ItemsPaths.emplace_back(getItemPath(itemer, para.packType));
         std::vector<TransMatrix> transData;
         bool nestResult = nest2d_base(ItemsPaths, para, transData);
 
@@ -339,6 +333,7 @@ namespace nestplacer
             Clipper3r::Path ItemPath = ItemsPaths[i];
             libnest2d::Item item = libnest2d::Item(ItemPath);
             Clipper3r::IntPoint trans_data = transData[i];
+            if (para.packType == PlaceType::CONCAVE) item.convexCal(false);
             item.translation({ trans_data.X, trans_data.Y });
             auto trans_item = item.transformedShape_s();
             if (bOnTheEdge(trans_item.Contour, para.workspaceW, para.workspaceH) == 2)
@@ -352,7 +347,6 @@ namespace nestplacer
         }
 
         libnest2d::Item newItem = libnest2d::Item(newItemPath);
-
         bool can_pack = false;
         Clipper3r::cInt imgW_dst = para.workspaceW, imgH_dst = para.workspaceH;
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst + 2 * offsetX, imgH_dst + 2 * offsetY, { para.workspaceW / 2, para.workspaceH / 2 });
@@ -375,6 +369,7 @@ namespace nestplacer
         else
         {
             newItem.translation({ 0, 0 });
+            if (para.packType == PlaceType::CONCAVE) newItem.convexCal(false);
             input.push_back(newItem);
             if (para.modelsDist == 0) para.modelsDist = 1;
             std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, libnest2d::NestControl());
@@ -442,11 +437,11 @@ namespace nestplacer
         Clipper3r::Path transData_cInt;
         for (NestItemer* itemer : items)
         {
-            ItemsPaths.emplace_back(getItemPath(itemer));
+            ItemsPaths.emplace_back(getItemPath(itemer, para.packType));
             transData_cInt.emplace_back(itemer->translate());
         }
             
-        Clipper3r::Path newItemPath = getItemPath(item);
+        Clipper3r::Path newItemPath = getItemPath(item, para.packType);
         TransMatrix NewItemTransData;
         bool can_pack = nest2d_base(ItemsPaths, transData_cInt, newItemPath, para, NewItemTransData);
 
