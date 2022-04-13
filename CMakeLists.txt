@@ -1,7 +1,11 @@
+set(CMAKE_CXX_STANDARD 14)
+
 set(SRCS nestplacer.cpp
 		 include/nestplacer/export.h
 		 include/nestplacer/nestplacer.h
 		 )
+
+__cc_find(Boost)
 
 if(NOT WIN32)
 	add_compile_options(-fPIC)
