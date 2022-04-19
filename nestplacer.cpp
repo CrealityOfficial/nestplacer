@@ -19,10 +19,13 @@ namespace nestplacer
 
     void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg, PlaceType type, bool parallel)
     {
-        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
-        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
-        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
-        cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
+        if (type != PlaceType::DOUBLEC)
+        {
+            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
+            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
+            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
+            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
+        }
         cfg.placer_config.parallel = parallel;  //启用单线程
         cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         //cfg.placer_config.accuracy; //优化率 
@@ -41,9 +44,84 @@ namespace nestplacer
                 case PlaceType::CENTER_TO_SIDE: return 3; break;
                 case PlaceType::ALIGNMENT: return 4; break;
                 case PlaceType::ONELINE: return 5; break;
-                case PlaceType::CONCAVE: return 6; break;
+                case PlaceType::DOUBLEC: return 6; break;
                 }
             };
+        }
+    }
+
+    double PerpendicularDistance(const Clipper3r::IntPoint& pt, const Clipper3r::IntPoint& lineStart, const Clipper3r::IntPoint& lineEnd)
+    {
+        double dx = lineEnd.X - lineStart.X;
+        double dy = lineEnd.Y - lineStart.Y;
+
+        //Normalize
+        double mag = pow(pow(dx, 2.0) + pow(dy, 2.0), 0.5);
+        if (mag > 0.0)
+        {
+            dx /= mag; dy /= mag;
+        }
+
+        double pvx = pt.X - lineStart.X;
+        double pvy = pt.Y - lineStart.Y;
+
+        //Get dot product (project pv onto normalized direction)
+        double pvdot = dx * pvx + dy * pvy;
+
+        //Scale line direction vector
+        double dsx = pvdot * dx;
+        double dsy = pvdot * dy;
+
+        //Subtract this from pv
+        double ax = pvx - dsx;
+        double ay = pvy - dsy;
+
+        return pow(pow(ax, 2.0) + pow(ay, 2.0), 0.5);
+    }
+
+    //polugon simplify
+    void RamerDouglasPeucker(const Clipper3r::Path& pointList, double epsilon, Clipper3r::Path& out)
+    {
+        if (pointList.size() < 2)
+            return ;
+
+        // Find the point with the maximum distance from line between start and end
+        double dmax = 0.0;
+        size_t index = 0;
+        size_t end = pointList.size() - 1;
+        for (size_t i = 1; i < end; i++)
+        {
+            double d = PerpendicularDistance(pointList[i], pointList[0], pointList[end]);
+            if (d > dmax)
+            {
+                index = i;
+                dmax = d;
+            }
+        }
+
+        // If max distance is greater than epsilon, recursively simplify
+        if (dmax > epsilon)
+        {
+            // Recursive call
+            Clipper3r::Path recResults1;
+            Clipper3r::Path recResults2;
+            Clipper3r::Path firstLine(pointList.begin(), pointList.begin() + index + 1);
+            Clipper3r::Path lastLine(pointList.begin() + index, pointList.end());
+            RamerDouglasPeucker(firstLine, epsilon, recResults1);
+            RamerDouglasPeucker(lastLine, epsilon, recResults2);
+
+            // Build the result list
+            out.assign(recResults1.begin(), recResults1.end() - 1);
+            out.insert(out.end(), recResults2.begin(), recResults2.end());
+            if (out.size() < 2)
+                return;
+        }
+        else
+        {
+            //Just return start and end points
+            out.clear();
+            out.push_back(pointList[0]);
+            out.push_back(pointList[end]);
         }
     }
 
@@ -59,7 +137,7 @@ namespace nestplacer
     Clipper3r::Path getItemPath(NestItemer* itemer, PlaceType type)
     {
         Clipper3r::Path newItemPath;
-        if (type != PlaceType::CONCAVE) 
+        if (type != PlaceType::DOUBLEC) 
             newItemPath = libnest2d::shapelike::convexHull(itemer->path());
         else
             newItemPath = itemer->path();
@@ -150,9 +228,9 @@ namespace nestplacer
             {
                 Clipper3r::ReversePath(ItemPath);//正轮廓倒序
             }
-            if (type != PlaceType::CONCAVE) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
+            if (type != PlaceType::DOUBLEC) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
             libnest2d::Item item = libnest2d::Item(ItemPath);
-            if (type == PlaceType::CONCAVE) item.convexCal(false);
+            if (type == PlaceType::DOUBLEC) item.convexCal(false);
             input.push_back(item);
         }
 
@@ -169,7 +247,7 @@ namespace nestplacer
         offsetY += (para.modelsDist - egde_dist) / 2;
         if (para.modelsDist == 0) para.modelsDist = 1;
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
-        std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, ctl);//只能处理凸包
+        std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, ctl);
 
 
         Clipper3r::Clipper a;
@@ -197,7 +275,7 @@ namespace nestplacer
             });//定义第一个轮廓遮挡中心排样区域
 
         input_outer_items[0].translation({ 1, 0 }); //packed mark
-        if (type == PlaceType::CONCAVE) input_outer_items[0].convexCal(false);
+        if (type == PlaceType::DOUBLEC) input_outer_items[0].convexCal(false);
         for (int i = 0; i < size; i++)
         {
             libnest2d::Item& iitem = input.at(i);
@@ -266,7 +344,8 @@ namespace nestplacer
                 oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
                 oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
             }
-            allItem.push_back(oItem);
+            RamerDouglasPeucker(oItem, 1.0 * NEST_FACTOR, oItem);
+            allItem.push_back(oItem);           
         }
 
         Clipper3r::cInt _imageW = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
@@ -333,7 +412,7 @@ namespace nestplacer
             Clipper3r::Path ItemPath = ItemsPaths[i];
             libnest2d::Item item = libnest2d::Item(ItemPath);
             Clipper3r::IntPoint trans_data = transData[i];
-            if (para.packType == PlaceType::CONCAVE) item.convexCal(false);
+            if (para.packType == PlaceType::DOUBLEC) item.convexCal(false);
             item.translation({ trans_data.X, trans_data.Y });
             auto trans_item = item.transformedShape_s();
             if (bOnTheEdge(trans_item.Contour, para.workspaceW, para.workspaceH) == 2)
@@ -369,7 +448,7 @@ namespace nestplacer
         else
         {
             newItem.translation({ 0, 0 });
-            if (para.packType == PlaceType::CONCAVE) newItem.convexCal(false);
+            if (para.packType == PlaceType::DOUBLEC) newItem.convexCal(false);
             input.push_back(newItem);
             if (para.modelsDist == 0) para.modelsDist = 1;
             std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, libnest2d::NestControl());

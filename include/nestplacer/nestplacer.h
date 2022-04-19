@@ -6,7 +6,7 @@
 #include "clipper3r/clipper.hpp"
 #include "trimesh2/Box.h"
 
-#define NEST_FACTOR  10000.0
+#define NEST_FACTOR  100.0
 
 namespace nestplacer
 {
@@ -14,7 +14,7 @@ namespace nestplacer
 		CENTER_TO_SIDE,
 		ALIGNMENT,
 		ONELINE,
-		CONCAVE,
+		DOUBLEC,
 		NULLTYPE
 	};
 
