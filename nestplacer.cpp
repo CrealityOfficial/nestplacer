@@ -19,7 +19,7 @@ namespace nestplacer
 
     void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg, PlaceType type, bool parallel)
     {
-        if (type != PlaceType::DOUBLEC)
+        if (type != PlaceType::CONCAVE)
         {
             cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
             cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
@@ -44,7 +44,7 @@ namespace nestplacer
                 case PlaceType::CENTER_TO_SIDE: return 3; break;
                 case PlaceType::ALIGNMENT: return 4; break;
                 case PlaceType::ONELINE: return 5; break;
-                case PlaceType::DOUBLEC: return 6; break;
+                case PlaceType::CONCAVE: return 6; break;
                 }
             };
         }
@@ -137,7 +137,7 @@ namespace nestplacer
     Clipper3r::Path getItemPath(NestItemer* itemer, PlaceType type)
     {
         Clipper3r::Path newItemPath;
-        if (type != PlaceType::DOUBLEC) 
+        if (type != PlaceType::CONCAVE) 
             newItemPath = libnest2d::shapelike::convexHull(itemer->path());
         else
             newItemPath = itemer->path();
@@ -228,9 +228,9 @@ namespace nestplacer
             {
                 Clipper3r::ReversePath(ItemPath);//正轮廓倒序
             }
-            if (type != PlaceType::DOUBLEC) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
+            if (type != PlaceType::CONCAVE) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
             libnest2d::Item item = libnest2d::Item(ItemPath);
-            if (type == PlaceType::DOUBLEC) item.convexCal(false);
+            if (type == PlaceType::CONCAVE) item.convexCal(false);
             input.push_back(item);
         }
 
@@ -247,6 +247,8 @@ namespace nestplacer
         offsetY += (para.modelsDist - egde_dist) / 2;
         if (para.modelsDist == 0) para.modelsDist = 1;
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
+
+
         std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, ctl);
 
 
@@ -275,7 +277,7 @@ namespace nestplacer
             });//定义第一个轮廓遮挡中心排样区域
 
         input_outer_items[0].translation({ 1, 0 }); //packed mark
-        if (type == PlaceType::DOUBLEC) input_outer_items[0].convexCal(false);
+        if (type == PlaceType::CONCAVE) input_outer_items[0].convexCal(false);
         for (int i = 0; i < size; i++)
         {
             libnest2d::Item& iitem = input.at(i);
@@ -286,7 +288,15 @@ namespace nestplacer
 
             if (angle == -90.)
             {
-                input_outer_items.push_back(libnest2d::Item(iitem.rawShape()));//收集排样区域外模型
+                if (type == PlaceType::CONCAVE)
+                {
+                    auto convex_path = libnest2d::shapelike::convexHull(iitem.rawShape().Contour);
+                    input_outer_items.push_back(libnest2d::Item(convex_path));
+                }
+                else
+                {
+                    input_outer_items.push_back(libnest2d::Item(iitem.rawShape()));//收集排样区域外模型
+                }
             }
             else
             {
@@ -353,6 +363,7 @@ namespace nestplacer
         Clipper3r::cInt _dist = para.modelsDist * NEST_FACTOR;
         std::vector<TransMatrix> transData;
         NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel);
+
         nest2d_base(allItem, para_cInt, transData);
 
         /////settle models that can be settled inside
@@ -412,7 +423,7 @@ namespace nestplacer
             Clipper3r::Path ItemPath = ItemsPaths[i];
             libnest2d::Item item = libnest2d::Item(ItemPath);
             Clipper3r::IntPoint trans_data = transData[i];
-            if (para.packType == PlaceType::DOUBLEC) item.convexCal(false);
+            if (para.packType == PlaceType::CONCAVE) item.convexCal(false);
             item.translation({ trans_data.X, trans_data.Y });
             auto trans_item = item.transformedShape_s();
             if (bOnTheEdge(trans_item.Contour, para.workspaceW, para.workspaceH) == 2)
@@ -448,7 +459,7 @@ namespace nestplacer
         else
         {
             newItem.translation({ 0, 0 });
-            if (para.packType == PlaceType::DOUBLEC) newItem.convexCal(false);
+            if (para.packType == PlaceType::CONCAVE) newItem.convexCal(false);
             input.push_back(newItem);
             if (para.modelsDist == 0) para.modelsDist = 1;
             std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, libnest2d::NestControl());

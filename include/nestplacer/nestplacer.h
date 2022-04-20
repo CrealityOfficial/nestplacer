@@ -14,7 +14,7 @@ namespace nestplacer
 		CENTER_TO_SIDE,
 		ALIGNMENT,
 		ONELINE,
-		DOUBLEC,
+		CONCAVE,
 		NULLTYPE
 	};
 
