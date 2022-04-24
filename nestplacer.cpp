@@ -27,7 +27,33 @@ namespace nestplacer
             cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
         }
         cfg.placer_config.parallel = parallel;  //启用单线程
-        cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+
+        switch (type)
+        {
+            case PlaceType::CENTER_TO_SIDE: 
+            case PlaceType::ALIGNMENT: 
+            case PlaceType::ONELINE: 
+            case PlaceType::CONCAVE: {
+                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+                cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+            }break;
+            case PlaceType::TOP_TO_BOTTOM: {
+                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT; 
+                cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+            }break;
+            case PlaceType::BOTTOM_TO_TOP: {
+                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT;
+                cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+            }break;
+            case PlaceType::LEFT_TO_RIGHT: {
+                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT;
+                cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+            }break;
+            case PlaceType::RIGHT_TO_LEFT: {
+                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_RIGHT;
+                cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+            }break;
+        }
         //cfg.placer_config.accuracy; //优化率 
         //cfg.placer_config.explore_holes;  //孔内是否放置图元,目前源码中还未实现
         //cfg.placer_config.before_packing; //摆放下一个Item之前，先对前面已经摆放好的Item进行调整的函数，若为空，则Item拍好位置后将不再变动。传入函数接口
@@ -37,7 +63,7 @@ namespace nestplacer
 
         if (type != PlaceType::NULLTYPE)
         {
-            cfg.placer_config.object_function = [type](const libnest2d::Item&)  //优化方向
+            cfg.placer_config.object_function = [type, &cfg](const libnest2d::Item&)  //优化方向
             {
                 switch (type)
                 {
@@ -45,6 +71,10 @@ namespace nestplacer
                 case PlaceType::ALIGNMENT: return 4; break;
                 case PlaceType::ONELINE: return 5; break;
                 case PlaceType::CONCAVE: return 6; break;
+                case PlaceType::TOP_TO_BOTTOM: return 7; break;
+                case PlaceType::BOTTOM_TO_TOP: return 8; break;
+                case PlaceType::LEFT_TO_RIGHT: return 9; break;
+                case PlaceType::RIGHT_TO_LEFT: return 10; break;
                 }
             };
         }
@@ -200,7 +230,6 @@ namespace nestplacer
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
         InitCfg(cfg, type, para.parallel);
-        cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
         auto convert = [&ItemsPaths, type](Clipper3r::Path& oItem, int index) {
             Clipper3r::Path lines = ItemsPaths.at(index);
@@ -266,6 +295,11 @@ namespace nestplacer
         int center_offset_x = 0.5 * para.workspaceW - (0.5 * (ibb_dst.right + ibb_dst.left) + offsetX);
         int center_offset_y = 0.5 * para.workspaceH - (0.5 * (ibb_dst.bottom + ibb_dst.top) + offsetY);
         if (type == PlaceType::ONELINE) center_offset_y = -ibb_dst.top - offsetY;
+        if (type == PlaceType::TOP_TO_BOTTOM || type == PlaceType::BOTTOM_TO_TOP || type == PlaceType::LEFT_TO_RIGHT || type == PlaceType::RIGHT_TO_LEFT)
+        {
+            center_offset_x = -2 * offsetX;
+            center_offset_y = -2 * offsetY;
+        }
 
         std::vector<libnest2d::Item> input_outer_items(1,
             {
