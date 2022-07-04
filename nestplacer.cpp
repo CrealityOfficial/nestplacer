@@ -63,7 +63,7 @@ namespace nestplacer
 
         if (type != PlaceType::NULLTYPE)
         {
-            cfg.placer_config.object_function = [type, &cfg](const libnest2d::Item&)  //优化方向
+            cfg.placer_config.object_function = [type](const libnest2d::Item&)  //优化方向
             {
                 switch (type)
                 {
@@ -76,6 +76,7 @@ namespace nestplacer
                 case PlaceType::LEFT_TO_RIGHT: return 9; break;
                 case PlaceType::RIGHT_TO_LEFT: return 10; break;
                 }
+                return 3;
             };
         }
     }
