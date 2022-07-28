@@ -12,6 +12,12 @@ if(NOT WIN32)
 	add_definitions(-DHAVE_PTHREADS)
 endif()
 
+
+__cc_find(libnest2d)
+__cc_find(clipper3r)
+__cc_find(nlopt)
+__cc_find(trimesh2)
+
 set(LIBS libnest2d clipper3r nlopt trimesh2)
 if(BUILD_NESTPLACER_STATIC)
     __add_real_target(nestplacer lib SOURCE ${SRCS}
