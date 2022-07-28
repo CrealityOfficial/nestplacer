@@ -23,7 +23,7 @@ if(BUILD_NESTPLACER_STATIC)
     __add_real_target(nestplacer lib SOURCE ${SRCS}
                                 LIB ${LIBS}
                                 DEF _NESTPLACER_DLL
-                                INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS}
+                                INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS} ${NLOPT_INCLUDE_DIRS}
                                 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
 								OPENMP
 								)
@@ -31,7 +31,7 @@ else()
     __add_real_target(nestplacer dll SOURCE ${SRCS}
                                 LIB ${LIBS}
                                 DEF _NESTPLACER_DLL
-                                INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS}
+                                INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS} ${NLOPT_INCLUDE_DIRS}
                                 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
 								OPENMP
 								)
