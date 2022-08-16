@@ -265,11 +265,9 @@ namespace nestplacer
         }
 
         Clipper3r::cInt imgW_dst = para.workspaceW, imgH_dst = para.workspaceH;
-
         double offsetX = 0., offsetY = 0.;
-
         int egde_dist = 100;//排样到边缘最近距离为50单位
-        if (input.size() == 1) egde_dist = 0;
+        if (input.size() == 1 && (input.back().boundingBox().height() >= imgH_dst || input.back().boundingBox().width() >= imgW_dst)) egde_dist = 0;
         if (egde_dist > para.modelsDist) egde_dist = para.modelsDist;
         imgW_dst += para.modelsDist - egde_dist;
         imgH_dst += para.modelsDist - egde_dist;
