@@ -22,6 +22,15 @@ namespace nestplacer
 		NULLTYPE
 	};
 
+	enum class StartPoint {
+		CENTER,
+		TOP_LEFT,
+		TOP_RIGHT,
+		BOTTOM_LEFT,
+		BOTTOM_RIGHT,
+		NULLTYPE
+	};
+
 	struct TransMatrix
 	{
 		Clipper3r::cInt x;
@@ -34,6 +43,25 @@ namespace nestplacer
 			y = 0;
 			rotation = 0.;
 		}
+
+		TransMatrix(Clipper3r::cInt _x, Clipper3r::cInt _y, double _angle)
+		{
+			x = _x;
+			y = _y;
+			rotation = _angle;
+		}
+
+		void merge(TransMatrix mat)
+		{
+			double r = mat.rotation* M_PIf / 180;
+			double c = cos(r);
+			double s = sin(r);
+			int x_blk = c * x - s * y;
+			int y_blk = s * x + c * y;
+			x = x_blk + mat.x;
+			y = y_blk + mat.y;
+			rotation += mat.rotation;
+		}
 	};
 
 	struct NestParaCInt
@@ -43,6 +71,7 @@ namespace nestplacer
 		Clipper3r::cInt modelsDist;
 		PlaceType packType;
 		bool parallel;
+		StartPoint sp;
 
 		NestParaCInt()
 		{
@@ -51,15 +80,17 @@ namespace nestplacer
 			workspaceW = 0;
 			workspaceH = 0;
 			parallel = true;
+			sp = StartPoint::NULLTYPE;
 		}
 
-		NestParaCInt(Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt dist, PlaceType type, bool _parallel)
+		NestParaCInt(Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt dist, PlaceType type, bool _parallel, StartPoint _sp)
 		{
 			workspaceW = w;
 			workspaceH = h;
 			modelsDist = dist;
 			packType = type;
 			parallel = _parallel;
+			sp = _sp;
 		}
 	};
 
@@ -113,8 +144,7 @@ namespace nestplacer
 		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func);
 
 		static bool nest2d_base(Clipper3r::Paths ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData);
-		static bool nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData);
-	};
+		static bool nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData);	};
 }
 
 

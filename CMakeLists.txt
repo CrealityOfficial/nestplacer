@@ -12,7 +12,7 @@ if(NOT WIN32)
 	add_definitions(-DHAVE_PTHREADS)
 endif()
 
-set(LIBS libnest2d clipper3r nlopt trimesh2)
+set(LIBS libnest2d clipper3r nlopt trimesh2 polygonLib)
 if(BUILD_NESTPLACER_STATIC)
     __add_real_target(nestplacer lib SOURCE ${SRCS}
                                 LIB ${LIBS}
