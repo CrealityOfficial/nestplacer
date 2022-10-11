@@ -448,7 +448,7 @@ namespace nestplacer
         return resultPath;
     }
 
-    Clipper3r::Path getPairConvex(Clipper3r::Paths pairPaths, std::vector<TransMatrix>& transData, bool changMat = true)
+    Clipper3r::Path getPairConcave(Clipper3r::Paths pairPaths, std::vector<TransMatrix>& transData, bool changMat = true)
     {
         Clipper3r::Path allPts, ConcaveHull;
         for (int i = 0; i < pairPaths.size(); i++)
@@ -502,7 +502,7 @@ namespace nestplacer
             allItem_pair[0] = itemPath[2 * i];
             allItem_pair[1] = itemPath[2 * i + 1];
             NestPlacer::nest2d_base(allItem_pair, para, transData_pair[i]);
-            pair_convex[i] = getPairConvex(allItem_pair, transData_pair[i], changMat);
+            pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i], changMat);
             if (totalNum == inputSize)
                 pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
         }
@@ -555,6 +555,51 @@ namespace nestplacer
             pairPackPro(allItem, transData, para_cInt, allItem.size());
 
 #else
+            auto rotateDirUpDown = [&transData](Clipper3r::Paths input, int itemIdx)
+            {
+                Clipper3r::Path output = input[itemIdx];
+                auto vSize2 = [](const Clipper3r::IntPoint& p0)
+                {
+                    return p0.X * p0.X + p0.Y * p0.Y;
+                };
+                Clipper3r::Path convex = libnest2d::shapelike::convexHull(output);
+                int maxLineIdx = -1;
+                Clipper3r::cInt maxLen = 0;
+                for (int i = 1; i < convex.size(); i++)
+                {
+                    if (vSize2(convex[i] - convex[i - 1]) > maxLen * maxLen)
+                    {
+                        maxLineIdx = i;
+                        maxLen = sqrt(vSize2(convex[i] - convex[i - 1]));
+                    }
+                }
+                float angle = -std::atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
+                double c = cos(angle);
+                double s = sin(angle);
+                if ((itemIdx%2 == 1) && RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y < RotateByVector(convex[(maxLineIdx + convex.size() / 2)% convex.size()], Clipper3r::IntPoint(), c, s).Y)
+                {
+                    angle += angle > M_PIf ? -M_PIf : M_PIf;
+                    c = cos(angle);
+                    s = sin(angle);
+                }
+                else if((itemIdx % 2 == 0) && RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y > RotateByVector(convex[(maxLineIdx + convex.size() / 2) % convex.size()], Clipper3r::IntPoint(), c, s).Y)
+                {
+                    angle += angle > M_PIf ? -M_PIf : M_PIf;
+                    c = cos(angle);
+                    s = sin(angle);
+                }
+                if (angle != 0)
+                {
+                    for (Clipper3r::IntPoint& pt : output)
+                    {
+                        pt = RotateByVector(pt, Clipper3r::IntPoint(), c, s);
+                    }
+                    transData[itemIdx] = TransMatrix(0, 0, angle*180/ M_PIf);
+                }
+
+                return output;
+            };
+
             int pair_num = allItem.size() / 2;
             std::vector < std::vector<TransMatrix>> transData_pair(pair_num);
             Clipper3r::Paths pair_convex(pair_num);
@@ -564,10 +609,10 @@ namespace nestplacer
             for (int i = 0; i < pair_num; i++)
             {
                 Clipper3r::Paths allItem_pair(2);
-                allItem_pair[0] = allItem[2 * i];
-                allItem_pair[1] = allItem[2 * i + 1];
+                allItem_pair[0] = rotateDirUpDown(allItem, 2 * i);
+                allItem_pair[1] = rotateDirUpDown(allItem, 2 * i + 1);
                 nest2d_base(allItem_pair, para_cInt, transData_pair[i]);
-                pair_convex[i] = getPairConvex(allItem_pair, transData_pair[i]);
+                pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i]);
                 pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
             }
 
@@ -615,9 +660,9 @@ namespace nestplacer
                 for (int i = 0; i < transData_blk.size(); i++)
                 {
                     transData_pair[i][0].merge(transData_blk[i]);
-                    transData[2 * i] = transData_pair[i][0];
+                    transData[2 * i].merge(transData_pair[i][0]);
                     transData_pair[i][1].merge(transData_blk[i]);
-                    transData[2 * i + 1] = transData_pair[i][1];
+                    transData[2 * i + 1].merge(transData_pair[i][1]);
                 }
             }
             else
@@ -631,13 +676,13 @@ namespace nestplacer
                     {
                         int pairIdx = curItemId[0] / 2;
                         transData_pair[pairIdx][0].merge(transData_blk_dst[i]);
-                        transData[curItemId[0]] = transData_pair[pairIdx][0];
+                        transData[curItemId[0]].merge(transData_pair[pairIdx][0]);
                         transData_pair[pairIdx][1].merge(transData_blk_dst[i]);
-                        transData[curItemId[1]] = transData_pair[pairIdx][1];
+                        transData[curItemId[1]].merge(transData_pair[pairIdx][1]);
                     }
                     else
                     {
-                        transData[curItemId[0]] = transData_blk_dst[i];
+                        transData[curItemId[0]].merge(transData_blk_dst[i]);
                     }
                 }
             }
