@@ -562,7 +562,7 @@ namespace nestplacer
                 {
                     return p0.X * p0.X + p0.Y * p0.Y;
                 };
-                Clipper3r::Path convex = libnest2d::shapelike::convexHull(output);
+                Clipper3r::Path convex = libnest2d::shapelike::convexHull(polygonLib::PolygonPro::polygonSimplyfy(output, 100));
                 int maxLineIdx = -1;
                 Clipper3r::cInt maxLen = 0;
                 for (int i = 1; i < convex.size(); i++)
