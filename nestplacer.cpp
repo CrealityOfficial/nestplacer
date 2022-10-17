@@ -576,13 +576,8 @@ namespace nestplacer
                 float angle = -std::atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
                 double c = cos(angle);
                 double s = sin(angle);
-                if ((itemIdx%2 == 1) && RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y < RotateByVector(convex[(maxLineIdx + convex.size() / 2)% convex.size()], Clipper3r::IntPoint(), c, s).Y)
-                {
-                    angle += angle > M_PIf ? -M_PIf : M_PIf;
-                    c = cos(angle);
-                    s = sin(angle);
-                }
-                else if((itemIdx % 2 == 0) && RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y > RotateByVector(convex[(maxLineIdx + convex.size() / 2) % convex.size()], Clipper3r::IntPoint(), c, s).Y)
+
+                if (RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y > RotateByVector(convex[(maxLineIdx + convex.size() / 2) % convex.size()], Clipper3r::IntPoint(), c, s).Y)
                 {
                     angle += angle > M_PIf ? -M_PIf : M_PIf;
                     c = cos(angle);
