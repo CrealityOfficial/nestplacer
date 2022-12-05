@@ -17,28 +17,52 @@ namespace nestplacer
 
 	}
 
-    void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg, PlaceType type, bool parallel)
+    void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg, NestParaCInt para)
     {
-        if (type != PlaceType::CONCAVE)
+        if (para.packType != PlaceType::CONCAVE)
         {
-            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi / 4.0));//多边形可用旋转角
-            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 3 / 4.0));
-            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 5 / 4.0));
-            cfg.placer_config.rotations.push_back(libnest2d::Radians(Pi * 7 / 4.0));
+            int step = 18;
+            float angle_per_step = 2 * Pi / step;
+            cfg.placer_config.rotations.clear();
+            for(int i = 0;i < step;i++)
+                cfg.placer_config.rotations.push_back(libnest2d::Radians(i * angle_per_step));//多边形可用旋转角
         }
-        cfg.placer_config.parallel = parallel;  //启用单线程
+        cfg.placer_config.parallel = para.parallel;  //启用单线程
 
-        switch (type)
+        switch (para.sp)
         {
-            case PlaceType::CENTER_TO_SIDE: 
-            case PlaceType::ALIGNMENT: 
-            case PlaceType::ONELINE: 
+        case StartPoint::CENTER: {
+            cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+            cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        }break;
+        case StartPoint::TOP_LEFT: {
+            cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT;
+            cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        }break;
+        case StartPoint::BOTTOM_LEFT: {
+            cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT;
+            cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        }break;
+        case StartPoint::TOP_RIGHT: {
+            cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_RIGHT;
+            cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        }break;
+        case StartPoint::BOTTOM_RIGHT: {
+            cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_RIGHT;
+            cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        }break;
+        case StartPoint::NULLTYPE:
+            switch (para.packType)
+            {
+            case PlaceType::CENTER_TO_SIDE:
+            case PlaceType::ALIGNMENT:
+            case PlaceType::ONELINE:
             case PlaceType::CONCAVE: {
                 cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
                 cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
             }break;
             case PlaceType::TOP_TO_BOTTOM: {
-                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT; 
+                cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_LEFT;
                 cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
             }break;
             case PlaceType::BOTTOM_TO_TOP: {
@@ -53,7 +77,10 @@ namespace nestplacer
                 cfg.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::TOP_RIGHT;
                 cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
             }break;
+            }
+            break;
         }
+        
         //cfg.placer_config.accuracy; //优化率 
         //cfg.placer_config.explore_holes;  //孔内是否放置图元,目前源码中还未实现
         //cfg.placer_config.before_packing; //摆放下一个Item之前，先对前面已经摆放好的Item进行调整的函数，若为空，则Item拍好位置后将不再变动。传入函数接口
@@ -61,11 +88,11 @@ namespace nestplacer
 
         //cfg.selector_config;
 
-        if (type != PlaceType::NULLTYPE)
+        if (para.packType != PlaceType::NULLTYPE)
         {
-            cfg.placer_config.object_function = [type](const libnest2d::Item&)  //优化方向
+            cfg.placer_config.object_function = [para](const libnest2d::Item&)  //优化方向
             {
-                switch (type)
+                switch (para.packType)
                 {
                 case PlaceType::CENTER_TO_SIDE: return 3; break;
                 case PlaceType::ALIGNMENT: return 4; break;
@@ -79,6 +106,13 @@ namespace nestplacer
                 return 3;
             };
         }
+    }
+
+    Clipper3r::IntRect getRect(Clipper3r::Path path)
+    {
+        Clipper3r::ClipperBase clip;
+        clip.AddPath(path, Clipper3r::ptSubject, true);
+        return clip.GetBounds();
     }
 
     double PerpendicularDistance(const Clipper3r::IntPoint& pt, const Clipper3r::IntPoint& lineStart, const Clipper3r::IntPoint& lineEnd)
@@ -230,7 +264,7 @@ namespace nestplacer
 
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
-        InitCfg(cfg, type, para.parallel);
+        InitCfg(cfg, para);
 
         auto convert = [&ItemsPaths, type](Clipper3r::Path& oItem, int index) {
             Clipper3r::Path lines = ItemsPaths.at(index);
@@ -265,11 +299,9 @@ namespace nestplacer
         }
 
         Clipper3r::cInt imgW_dst = para.workspaceW, imgH_dst = para.workspaceH;
-
         double offsetX = 0., offsetY = 0.;
-
-        int egde_dist = 100;//排样到边缘最近距离为50单位
-        if (input.size() == 1) egde_dist = 0;
+        int egde_dist = 10;//排样到边缘最近距离为5单位
+        if (input.size() == 1 && (input.back().boundingBox().height() >= imgH_dst || input.back().boundingBox().width() >= imgW_dst)) egde_dist = 0;
         if (egde_dist > para.modelsDist) egde_dist = para.modelsDist;
         imgW_dst += para.modelsDist - egde_dist;
         imgH_dst += para.modelsDist - egde_dist;
@@ -373,6 +405,120 @@ namespace nestplacer
         return result;
     }
 
+    Clipper3r::IntPoint RotateByVector(Clipper3r::IntPoint old_pt, Clipper3r::IntPoint offset, double c, double s)
+    {
+        double new_x = c * old_pt.X - s * old_pt.Y;
+        double new_y = s * old_pt.X + c * old_pt.Y;
+        Clipper3r::IntPoint output = Clipper3r::IntPoint(new_x, new_y);
+        output += offset;
+        return output;
+    }
+
+    Clipper3r::Path RotToMinRect(Clipper3r::Path result, std::vector<TransMatrix>& transData)
+    {
+        Clipper3r::Path resultPath;
+        Clipper3r::cInt minArea = LONG_MAX;
+        double minAreaAngle = 0;
+        double anglePerStep = 5;
+        int stepNum = 180 / anglePerStep;
+        for (int i = 0; i < stepNum; i++)
+        {
+            Clipper3r::Path rotPath;
+            rotPath.reserve(result.size());
+            double r = anglePerStep * i * M_PIf / 180;
+            double c = cos(r);
+            double s = sin(r);
+            for (Clipper3r::IntPoint pt : result)
+            {
+                rotPath .push_back(RotateByVector(pt, Clipper3r::IntPoint(), c, s));
+            }
+            Clipper3r::IntRect pathRect = getRect(rotPath);
+            Clipper3r::cInt rectArea = (pathRect.right - pathRect.left) * (pathRect.bottom - pathRect.top);
+            if (rectArea < minArea && ((pathRect.right - pathRect.left) > (pathRect.bottom - pathRect.top)))
+            {
+                minArea = rectArea;
+                resultPath = rotPath;
+                minAreaAngle = anglePerStep * i;
+            }
+        }
+        for (int j = 0; j < transData.size(); j++)
+        {
+            transData[j].merge(TransMatrix(0, 0, minAreaAngle));
+        }
+        return resultPath;
+    }
+
+    Clipper3r::Path getPairConcave(Clipper3r::Paths pairPaths, std::vector<TransMatrix>& transData, bool changMat = true)
+    {
+        Clipper3r::Path allPts, ConcaveHull;
+        for (int i = 0; i < pairPaths.size(); i++)
+        {
+            double r = transData[i].rotation * M_PIf / 180;
+            double c = cos(r);
+            double s = sin(r);
+            Clipper3r::IntPoint offset = Clipper3r::IntPoint(transData[i].x, transData[i].y);
+            for (Clipper3r::IntPoint pt : pairPaths[i])
+            {
+                allPts.push_back(RotateByVector(pt, offset, c, s));
+            }
+        }
+        ConcaveHull = polygonLib::PolygonPro::polygonConcaveHull(allPts, 0.2);
+
+        Clipper3r::IntRect pathRect = getRect(ConcaveHull);
+        Clipper3r::IntPoint offsetC = Clipper3r::IntPoint((pathRect.left + pathRect.right) / 2, (pathRect.top + pathRect.bottom) / 2);
+        for (Clipper3r::IntPoint& pt : ConcaveHull)
+        {
+            pt -= offsetC;
+        }
+        if (changMat)
+        {
+            for (int i = 0; i < transData.size(); i++)
+            {
+                transData[i].x -= offsetC.X;
+                transData[i].y -= offsetC.Y;
+            }
+        }
+     
+        return ConcaveHull;
+    }
+
+    void pairPackPro(Clipper3r::Paths itemPath, std::vector<TransMatrix>& transData, NestParaCInt para, int totalNum)
+    {
+        int inputSize = itemPath.size();
+        transData.resize(inputSize);
+        int pair_num = inputSize / 2;
+        if (pair_num == 0) return;
+        if (2 * inputSize == totalNum) para.packType = PlaceType::BOTTOM_TO_TOP;
+        else para.packType = PlaceType::CONCAVE;
+        bool changMat = pair_num != 1;;
+        std::vector < std::vector<TransMatrix>> transData_pair(pair_num);
+        Clipper3r::Paths pair_convex(pair_num);
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
+        for (int i = 0; i < pair_num; i++)
+        {
+            Clipper3r::Paths allItem_pair(2);
+            allItem_pair[0] = itemPath[2 * i];
+            allItem_pair[1] = itemPath[2 * i + 1];
+            NestPlacer::nest2d_base(allItem_pair, para, transData_pair[i]);
+            pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i], changMat);
+            if (totalNum == inputSize)
+                pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
+        }
+
+        std::vector<TransMatrix> transData_low;
+        pairPackPro(pair_convex, transData_low, para, totalNum);
+
+        for (int i = 0; i < inputSize; i++)
+        {
+            int pairIdx = i / 2;
+            transData[i].merge(transData_pair[pairIdx][(i - 2 * pairIdx)]);
+            transData[i].merge(transData_low[i/2]);
+        }
+
+    }
+
     void NestPlacer::layout_all_nest(std::vector < std::vector<trimesh::vec3>> models, std::vector<int> modelIndices,
         NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
     {
@@ -389,7 +535,8 @@ namespace nestplacer
                 oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
                 oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
             }
-            RamerDouglasPeucker(oItem, 1.0 * NEST_FACTOR, oItem);
+            if(para.packType != nestplacer::PlaceType::CONCAVE)
+                RamerDouglasPeucker(oItem, 1.0 * NEST_FACTOR, oItem);
             allItem.push_back(oItem);           
         }
 
@@ -397,9 +544,172 @@ namespace nestplacer
         Clipper3r::cInt _imageH = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt _dist = para.modelsDist * NEST_FACTOR;
         std::vector<TransMatrix> transData;
-        NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel);
+        NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE);
 
-        nest2d_base(allItem, para_cInt, transData);
+        if (para.packType != PlaceType::CONCAVE)
+            nest2d_base(allItem, para_cInt, transData);
+        else
+        {
+            transData.resize(allItem.size());
+#if 0
+            pairPackPro(allItem, transData, para_cInt, allItem.size());
+
+#else
+            auto rotateDirUpDown = [&transData](Clipper3r::Paths input, int itemIdx)
+            {
+                Clipper3r::Path output = input[itemIdx];
+                auto vSize2 = [](const Clipper3r::IntPoint& p0)
+                {
+                    return p0.X * p0.X + p0.Y * p0.Y;
+                };
+                Clipper3r::Path convex = libnest2d::shapelike::convexHull(polygonLib::PolygonPro::polygonSimplyfy(output, 100));
+                int maxLineIdx = -1;
+                Clipper3r::cInt maxLen = 0;
+                for (int i = 1; i < convex.size(); i++)
+                {
+                    if (vSize2(convex[i] - convex[i - 1]) > maxLen * maxLen)
+                    {
+                        maxLineIdx = i;
+                        maxLen = sqrt(vSize2(convex[i] - convex[i - 1]));
+                    }
+                }
+                float angle = -std::atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
+                double c = cos(angle);
+                double s = sin(angle);
+
+                if (RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y > RotateByVector(convex[(maxLineIdx + convex.size() / 2) % convex.size()], Clipper3r::IntPoint(), c, s).Y)
+                {
+                    angle += angle > M_PIf ? -M_PIf : M_PIf;
+                    c = cos(angle);
+                    s = sin(angle);
+                }
+                if (angle != 0)
+                {
+                    for (Clipper3r::IntPoint& pt : output)
+                    {
+                        pt = RotateByVector(pt, Clipper3r::IntPoint(), c, s);
+                    }
+                    transData[itemIdx] = TransMatrix(0, 0, angle*180/ M_PIf);
+                }
+
+                return output;
+            };
+
+            int pair_num = allItem.size() / 2;
+            std::vector < std::vector<TransMatrix>> transData_pair(pair_num);
+            Clipper3r::Paths pair_convex(pair_num);
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < pair_num; i++)
+            {
+                Clipper3r::Paths allItem_pair(2);
+                allItem_pair[0] = rotateDirUpDown(allItem, 2 * i);
+                allItem_pair[1] = rotateDirUpDown(allItem, 2 * i + 1);
+                nest2d_base(allItem_pair, para_cInt, transData_pair[i]);
+                pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i]);
+                pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
+            }
+
+            para_cInt.sp = StartPoint::BOTTOM_LEFT;
+            std::vector<TransMatrix> transData_blk;
+            nest2d_base(pair_convex, para_cInt, transData_blk);
+
+            std::vector<int> noPackedPathsId;        
+            Clipper3r::Paths non_packedPaths;
+            std::vector<std::vector<int>> itemId;
+            for (int i = 0; i < pair_num; i++)
+            {
+                if (transData_blk[i].x > 0 && transData_blk[i].x < _imageW && transData_blk[i].y > 0 && transData_blk[i].y < _imageH)
+                {
+                    non_packedPaths.push_back(pair_convex[i]);
+                    std::vector<int> PairItemId;
+                    PairItemId.push_back(2 * i);
+                    PairItemId.push_back(2 * i + 1);
+                    itemId.push_back(PairItemId);
+                }
+                else
+                {
+                    noPackedPathsId.push_back(2 * i);
+                    noPackedPathsId.push_back(2 * i + 1);
+                }
+            }        
+            for (int i = 0; i < noPackedPathsId.size(); i++)
+            {
+                int idx = noPackedPathsId[i];
+                non_packedPaths.push_back(allItem[idx]);
+                std::vector<int> singleItemId;
+                singleItemId.push_back(idx);
+                itemId.push_back(singleItemId);
+            }
+            if (allItem.size() % 2)
+            {
+                non_packedPaths.push_back(allItem.back());
+                std::vector<int> singleItemId;
+                singleItemId.push_back(allItem.size() - 1);
+                itemId.push_back(singleItemId);
+            }
+
+            if (noPackedPathsId.empty() && allItem.size() % 2 == 0)
+            {
+                for (int i = 0; i < transData_blk.size(); i++)
+                {
+                    transData_pair[i][0].merge(transData_blk[i]);
+                    transData[2 * i].merge(transData_pair[i][0]);
+                    transData_pair[i][1].merge(transData_blk[i]);
+                    transData[2 * i + 1].merge(transData_pair[i][1]);
+                }
+            }
+            else
+            {
+                std::vector<TransMatrix> transData_blk_dst;
+                nest2d_base(non_packedPaths, para_cInt, transData_blk_dst);
+                for (int i = 0; i < transData_blk_dst.size(); i++)
+                {
+                    std::vector<int> curItemId = itemId[i];
+                    if (curItemId.size() > 1)
+                    {
+                        int pairIdx = curItemId[0] / 2;
+                        transData_pair[pairIdx][0].merge(transData_blk_dst[i]);
+                        transData[curItemId[0]].merge(transData_pair[pairIdx][0]);
+                        transData_pair[pairIdx][1].merge(transData_blk_dst[i]);
+                        transData[curItemId[1]].merge(transData_pair[pairIdx][1]);
+                    }
+                    else
+                    {
+                        transData[curItemId[0]].merge(transData_blk_dst[i]);
+                    }
+                }
+            }
+#endif
+            int minX = INT_MAX, minY = INT_MAX, maxX = 0, maxY = 0;
+            for (int i = 0; i < allItem.size(); i++)
+            {
+                if (transData[i].x > 0 && transData[i].x < _imageW && transData[i].y > 0 && transData[i].y < _imageH)
+                {
+                    double r = transData[i].rotation * M_PIf / 180;
+                    double c = cos(r);
+                    double s = sin(r);
+                    Clipper3r::IntPoint offset = Clipper3r::IntPoint(transData[i].x, transData[i].y);
+                    for (Clipper3r::IntPoint itemPt : allItem[i])
+                    {
+                        itemPt = RotateByVector(itemPt, offset, c, s);
+                        if (itemPt.X < minX) minX = itemPt.X;
+                        if (itemPt.Y < minY) minY = itemPt.Y;
+                        if (itemPt.X > maxX) maxX = itemPt.X;
+                        if (itemPt.Y > maxY) maxY = itemPt.Y;
+                    }
+                }
+            }
+            Clipper3r::IntPoint offset2mid = Clipper3r::IntPoint((_imageW  - (minX + maxX)) / 2 + 0.5, (_imageH  - (minY + maxY)) / 2 + 0.5);
+            for (TransMatrix& mat : transData)
+            {
+                if (mat.x > 0 && mat.x < _imageW && mat.y > 0 && mat.y < _imageH)
+                {
+                    mat.merge(TransMatrix(offset2mid.X, offset2mid.Y, 0));
+                }
+            }  
+        }
 
         /////settle models that can be settled inside
         trimesh::vec3 total_offset;
@@ -412,7 +722,6 @@ namespace nestplacer
             int modelIndexI = modelIndices[i];
             modelPositionUpdateFunc(modelIndexI, newBoxCenter);
         }
-
     }
 
     bool NestPlacer::nest2d(std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func)
@@ -442,7 +751,7 @@ namespace nestplacer
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
         cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
-        InitCfg(cfg, PlaceType::NULLTYPE, para.parallel);
+        InitCfg(cfg, para);
         std::vector<libnest2d::Item> input;
         std::vector<libnest2d::Item> input_out_pack(1,
             {
@@ -526,7 +835,6 @@ namespace nestplacer
         NewItemTransData.y = oitem.translation().Y;
         NewItemTransData.rotation = oitem.rotation().toDegrees();
         return false;
-
     }
 
     bool NestPlacer::layout_new_item(std::vector < std::vector<trimesh::vec3>> models, std::vector<trimesh::vec3> transData,
@@ -536,7 +844,7 @@ namespace nestplacer
         Clipper3r::cInt w = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
         Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
-        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel);
+        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE);
         Clipper3r::Paths ItemsPaths;
         for (int i = 0; i < models.size(); i++)
         {
