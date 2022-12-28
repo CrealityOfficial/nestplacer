@@ -19,6 +19,7 @@ namespace nestplacer
 		BOTTOM_TO_TOP,
 		LEFT_TO_RIGHT,
 		RIGHT_TO_LEFT,
+		CONCAVE_ALL,
 		NULLTYPE
 	};
 
@@ -135,16 +136,25 @@ namespace nestplacer
 		NestPlacer();
 		~NestPlacer();
 	public:
-		static void layout_all_nest(std::vector < std::vector<trimesh::vec3>> models, std::vector<int> modelIndices, 
+		/*所有模型布局*/
+		static void layout_all_nest(const std::vector < std::vector<trimesh::vec3>>& models, std::vector<int> modelIndices,
 			NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
-		static bool layout_new_item(std::vector < std::vector<trimesh::vec3>> models, std::vector<trimesh::vec3> transData, 
-			std::vector<trimesh::vec3> NewItem, NestParaFloat para, std::function<void(trimesh::vec3)> func);
+		/*新增单个模型布局*/
+		static bool layout_new_item(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
+			const std::vector<trimesh::vec3>& NewItem, NestParaFloat para, std::function<void(trimesh::vec3)> func);
+		/*新增多个模型布局*/
+		static void layout_new_items(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
+			const std::vector < std::vector<trimesh::vec3>>& NewItems, NestParaFloat para, std::function<void(int, trimesh::vec3)> func);
 
-		static bool nest2d(std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func);
-		static bool nest2d(std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func);
+		static bool nest2d(const std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func);
+		static bool nest2d(const std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func);
 
-		static bool nest2d_base(Clipper3r::Paths ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData);
-		static bool nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData);	};
+		static bool nest2d_base(const Clipper3r::Paths& ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData);
+		static bool nest2d_base(const Clipper3r::Paths& ItemsPaths, const Clipper3r::Path& transData, const Clipper3r::Path& newItemPath,
+			NestParaCInt para, TransMatrix& NewItemTransData);
+		static void nest2d_base(const Clipper3r::Paths& ItemsPaths, const Clipper3r::Path& transData, const Clipper3r::Paths& newItemPaths,
+			NestParaCInt para, std::vector<TransMatrix>& NewItemTransDatas);
+	};
 }
 
 
