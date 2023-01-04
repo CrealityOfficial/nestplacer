@@ -19,7 +19,7 @@ namespace nestplacer
 
     void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg, NestParaCInt para)
     {
-        if (para.packType != PlaceType::CONCAVE)
+        if (para.packType != PlaceType::CONCAVE && para.packType != PlaceType::CONCAVE_ALL)
         {
             int step = 18;
             float angle_per_step = 2 * Pi / step;
@@ -102,6 +102,7 @@ namespace nestplacer
                 case PlaceType::BOTTOM_TO_TOP: return 8; break;
                 case PlaceType::LEFT_TO_RIGHT: return 9; break;
                 case PlaceType::RIGHT_TO_LEFT: return 10; break;
+                case PlaceType::CONCAVE_ALL: return 11; break;
                 }
                 return 3;
             };
@@ -292,9 +293,9 @@ namespace nestplacer
             {
                 Clipper3r::ReversePath(ItemPath);//正轮廓倒序
             }
-            if (type != PlaceType::CONCAVE) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
+            if (type != PlaceType::CONCAVE && type != PlaceType::CONCAVE_ALL) ItemPath = libnest2d::shapelike::convexHull(ItemPath);
             libnest2d::Item item = libnest2d::Item(ItemPath);
-            if (type == PlaceType::CONCAVE) item.convexCal(false);
+            if (type == PlaceType::CONCAVE || type == PlaceType::CONCAVE_ALL) item.convexCal(false);
             input.push_back(item);
         }
 
@@ -344,7 +345,7 @@ namespace nestplacer
             });//定义第一个轮廓遮挡中心排样区域
 
         input_outer_items[0].translation({ 1, 0 }); //packed mark
-        if (type == PlaceType::CONCAVE) input_outer_items[0].convexCal(false);
+        if (type == PlaceType::CONCAVE || type == PlaceType::CONCAVE_ALL) input_outer_items[0].convexCal(false);
         for (int i = 0; i < size; i++)
         {
             libnest2d::Item& iitem = input.at(i);
@@ -355,7 +356,7 @@ namespace nestplacer
 
             if (angle == -90.)
             {
-                if (type == PlaceType::CONCAVE)
+                if (type == PlaceType::CONCAVE || type == PlaceType::CONCAVE_ALL)
                 {
                     auto convex_path = libnest2d::shapelike::convexHull(iitem.rawShape().Contour);
                     input_outer_items.push_back(libnest2d::Item(convex_path));
@@ -522,8 +523,6 @@ namespace nestplacer
     void NestPlacer::layout_all_nest(const std::vector < std::vector<trimesh::vec3>>& models, std::vector<int> modelIndices,
         NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
     {
-        bool pairPack = para.packType == PlaceType::CONCAVE;
-        if(para.packType == PlaceType::CONCAVE_ALL) para.packType = PlaceType::CONCAVE;
         trimesh::box3 basebox = para.workspaceBox;
         Clipper3r::Paths allItem;
         allItem.reserve(models.size());
@@ -537,7 +536,7 @@ namespace nestplacer
                 oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
                 oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
             }
-            if(para.packType != nestplacer::PlaceType::CONCAVE)
+            if(para.packType != nestplacer::PlaceType::CONCAVE && para.packType != nestplacer::PlaceType::CONCAVE_ALL)
                 RamerDouglasPeucker(oItem, 1.0 * NEST_FACTOR, oItem);
             allItem.push_back(oItem);           
         }
@@ -548,7 +547,7 @@ namespace nestplacer
         std::vector<TransMatrix> transData;
         NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE);
 
-        if (!pairPack)
+        if (para.packType != PlaceType::CONCAVE)
             nest2d_base(allItem, para_cInt, transData);
         else
         {
