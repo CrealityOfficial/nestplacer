@@ -574,7 +574,7 @@ namespace nestplacer
                         maxLen = sqrt(vSize2(convex[i] - convex[i - 1]));
                     }
                 }
-                float angle = -std::atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
+                float angle = -atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
                 double c = cos(angle);
                 double s = sin(angle);
 
