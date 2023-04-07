@@ -744,7 +744,7 @@ namespace nestplacer
     bool NestPlacer::nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData)
     {
         Clipper3r::cInt offsetX = 0, offsetY = 0;
-        int egde_dist = 100;
+        int egde_dist = 10;
         if (egde_dist > para.modelsDist) egde_dist = para.modelsDist;
         offsetX += (para.modelsDist - egde_dist) / 2;
         offsetY += (para.modelsDist - egde_dist) / 2;
