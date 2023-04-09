@@ -780,6 +780,21 @@ namespace nestplacer
             }
         }
 
+        auto can_pack_mid = [&input, para](libnest2d::PolygonImpl nItem)
+        {
+            libnest2d::sl::offset(nItem, para.modelsDist);
+            Clipper3r::Paths result;
+            Clipper3r::Clipper a;
+            for (libnest2d::Item dItem : input)
+            {
+                auto trans_item = dItem.transformedShape_s();
+                a.AddPath(trans_item.Contour, Clipper3r::ptSubject, true);
+            }
+            a.AddPath(nItem.Contour, Clipper3r::ptClip, true);
+            a.Execute(Clipper3r::ctIntersection, result, Clipper3r::pftNonZero, Clipper3r::pftNonZero);
+            return result.empty();
+        };
+
         libnest2d::Item newItem = libnest2d::Item(newItemPath);
         bool can_pack = false;
         Clipper3r::cInt imgW_dst = para.workspaceW, imgH_dst = para.workspaceH;
@@ -790,6 +805,13 @@ namespace nestplacer
             auto trans_item = newItem.transformedShape_s();
             if (bOnTheEdge(trans_item.Contour, para.workspaceW, para.workspaceH) == 2)
             {
+                if (can_pack_mid(trans_item))
+                {
+                    NewItemTransData.x = newItem.translation().X;
+                    NewItemTransData.y = newItem.translation().Y;
+                    NewItemTransData.rotation = newItem.rotation().toDegrees();
+                    return true;
+                }
                 can_pack = true;
                 break;
             }
