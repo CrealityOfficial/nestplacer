@@ -21,7 +21,7 @@ namespace nestplacer
     {
         if (para.packType != PlaceType::CONCAVE)
         {
-            int step = 18;
+            int step = 8;
             float angle_per_step = 2 * Pi / step;
             cfg.placer_config.rotations.clear();
             for(int i = 0;i < step;i++)
