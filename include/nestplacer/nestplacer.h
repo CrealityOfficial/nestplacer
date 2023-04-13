@@ -7,6 +7,7 @@
 #include "trimesh2/Box.h"
 
 #define NEST_FACTOR  100.0
+#define EDGE_DIST 10
 
 namespace nestplacer
 {

@@ -300,13 +300,13 @@ namespace nestplacer
 
         Clipper3r::cInt imgW_dst = para.workspaceW, imgH_dst = para.workspaceH;
         double offsetX = 0., offsetY = 0.;
-        int egde_dist = 10;//排样到边缘最近距离为5单位
-        if (input.size() == 1 && (input.back().boundingBox().height() >= imgH_dst || input.back().boundingBox().width() >= imgW_dst)) egde_dist = 0;
-        if (egde_dist > para.modelsDist) egde_dist = para.modelsDist;
-        imgW_dst += para.modelsDist - egde_dist;
-        imgH_dst += para.modelsDist - egde_dist;
-        offsetX += (para.modelsDist - egde_dist) / 2;
-        offsetY += (para.modelsDist - egde_dist) / 2;
+        int edge_dist = EDGE_DIST;//排样到边缘最近距离为5单位
+        if (input.size() == 1 && (input.back().boundingBox().height() >= imgH_dst || input.back().boundingBox().width() >= imgW_dst)) edge_dist = 0;
+        if (edge_dist > para.modelsDist) edge_dist = para.modelsDist;
+        imgW_dst += para.modelsDist - edge_dist;
+        imgH_dst += para.modelsDist - edge_dist;
+        offsetX += (para.modelsDist - edge_dist) / 2;
+        offsetY += (para.modelsDist - edge_dist) / 2;
         if (para.modelsDist == 0) para.modelsDist = 1;
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
 
@@ -536,7 +536,7 @@ namespace nestplacer
                 oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
             }
             if(para.packType != nestplacer::PlaceType::CONCAVE)
-                RamerDouglasPeucker(oItem, 1.0 * NEST_FACTOR, oItem);
+                RamerDouglasPeucker(oItem, 1.0, oItem);
             allItem.push_back(oItem);           
         }
 
@@ -744,10 +744,10 @@ namespace nestplacer
     bool NestPlacer::nest2d_base(Clipper3r::Paths ItemsPaths, Clipper3r::Path transData, Clipper3r::Path newItemPath, NestParaCInt para, TransMatrix& NewItemTransData)
     {
         Clipper3r::cInt offsetX = 0, offsetY = 0;
-        int egde_dist = 10;
-        if (egde_dist > para.modelsDist) egde_dist = para.modelsDist;
-        offsetX += (para.modelsDist - egde_dist) / 2;
-        offsetY += (para.modelsDist - egde_dist) / 2;
+        int edge_dist = EDGE_DIST;
+        if (edge_dist > para.modelsDist) edge_dist = para.modelsDist;
+        offsetX += (para.modelsDist - edge_dist) / 2;
+        offsetY += (para.modelsDist - edge_dist) / 2;
 
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
         cfg.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
