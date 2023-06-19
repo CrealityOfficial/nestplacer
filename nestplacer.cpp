@@ -536,8 +536,6 @@ namespace nestplacer
                 oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
                 oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
             }
-            if(para.packType != nestplacer::PlaceType::CONCAVE && para.packType != nestplacer::PlaceType::CONCAVE_ALL)
-                RamerDouglasPeucker(oItem, 1.0 * NEST_FACTOR, oItem);
             allItem.push_back(oItem);           
         }
 
