@@ -21,7 +21,7 @@ namespace nestplacer
     {
         if (para.packType != PlaceType::CONCAVE && para.packType != PlaceType::CONCAVE_ALL)
         {
-            int step = 8;
+            int step = std::max(1, para.rotationStep);
             float angle_per_step = 2 * Pi / step;
             cfg.placer_config.rotations.clear();
             for(int i = 0;i < step;i++)
@@ -543,7 +543,7 @@ namespace nestplacer
         Clipper3r::cInt _imageH = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt _dist = para.modelsDist * NEST_FACTOR;
         std::vector<TransMatrix> transData;
-        NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE);
+        NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
 
         if (para.packType != PlaceType::CONCAVE)
             nest2d_base(allItem, para_cInt, transData);
@@ -866,7 +866,7 @@ namespace nestplacer
         Clipper3r::cInt w = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
         Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
-        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE);
+        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
         Clipper3r::Paths ItemsPaths;
         for (int i = 0; i < models.size(); i++)
         {
@@ -1015,7 +1015,7 @@ namespace nestplacer
         Clipper3r::cInt w = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
         Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
-        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE);
+        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
         Clipper3r::Paths ItemsPaths;
         for (int i = 0; i < models.size(); i++)
         {

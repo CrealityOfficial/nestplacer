@@ -73,6 +73,7 @@ namespace nestplacer
 		PlaceType packType;
 		bool parallel;
 		StartPoint sp;
+		int rotationStep;
 
 		NestParaCInt()
 		{
@@ -82,9 +83,10 @@ namespace nestplacer
 			workspaceH = 0;
 			parallel = true;
 			sp = StartPoint::NULLTYPE;
+			rotationStep = 8;
 		}
 
-		NestParaCInt(Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt dist, PlaceType type, bool _parallel, StartPoint _sp)
+		NestParaCInt(Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt dist, PlaceType type, bool _parallel, StartPoint _sp, int _rotationStep = 8)
 		{
 			workspaceW = w;
 			workspaceH = h;
@@ -92,6 +94,7 @@ namespace nestplacer
 			packType = type;
 			parallel = _parallel;
 			sp = _sp;
+			rotationStep = _rotationStep;
 		}
 	};
 
@@ -101,6 +104,7 @@ namespace nestplacer
 		float modelsDist;
 		PlaceType packType;
 		bool parallel;
+		int rotationStep;
 
 		NestParaFloat()
 		{
@@ -108,14 +112,16 @@ namespace nestplacer
 			packType = PlaceType::CENTER_TO_SIDE;
 			modelsDist = 0.f;
 			parallel = true;
+			rotationStep = 8;
 		}
 
-		NestParaFloat(trimesh::box3 workspace, float dist, PlaceType type, bool _parallel)
+		NestParaFloat(trimesh::box3 workspace, float dist, PlaceType type, bool _parallel, int _rotationStep = 8)
 		{
 			workspaceBox = workspace;
 			modelsDist = dist;
 			packType = type;
 			parallel = _parallel;
+			rotationStep = _rotationStep;
 		}
 	};
 
