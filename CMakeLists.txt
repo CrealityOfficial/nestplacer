@@ -20,6 +20,12 @@ __assert_target(boost_header)
 set(LIBS libnest2d clipper3r nlopt_static boost_header)
 set(ILIBS trimesh2)
 
+if(CC_BC_WIN)
+else()
+    find_package (Threads)
+    list(APPEND LIBS ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
 __add_common_library(nestplacer OPENMP)
 
 if(CC_INSTALL_NESTPLACER)
