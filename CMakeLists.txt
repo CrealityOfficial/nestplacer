@@ -10,12 +10,14 @@ __assert_target(trimesh2)
 __cc_find(libnest2d)
 __cc_find(clipper3r)
 __cc_find(nlopt_static)
+__cc_find(boost_header)
 
 __assert_target(libnest2d)
 __assert_target(clipper3r)
 __assert_target(nlopt_static)
+__assert_target(boost_header)
 
-set(LIBS libnest2d clipper3r nlopt_static)
+set(LIBS libnest2d clipper3r nlopt_static boost_header)
 set(ILIBS trimesh2)
 
 __add_common_library(nestplacer OPENMP)
