@@ -1,21 +1,90 @@
 #include"nestplacer/nestplacer.h"
 
 #include <iostream>
+#include <clipper3r/clipper.hpp>
 #include <libnest2d/libnest2d.hpp>
 
-const double BP2D_CONSTEXPR Pi = 3.141592653589793238463;
+const double Pi = 3.141592653589793238463;
+#define NEST_FACTOR  100.0
 
 namespace nestplacer
 {
+    struct TransMatrix
+    {
+        Clipper3r::cInt x;
+        Clipper3r::cInt y;
+        double rotation;
 
-	NestPlacer::NestPlacer()
-	{
+        TransMatrix()
+        {
+            x = 0;
+            y = 0;
+            rotation = 0.;
+        }
 
-	}
-	NestPlacer::~NestPlacer()
-	{
+        TransMatrix(Clipper3r::cInt _x, Clipper3r::cInt _y, double _angle)
+        {
+            x = _x;
+            y = _y;
+            rotation = _angle;
+        }
 
-	}
+        void merge(TransMatrix mat)
+        {
+            double r = mat.rotation * M_PIf / 180;
+            double c = cos(r);
+            double s = sin(r);
+            int x_blk = c * x - s * y;
+            int y_blk = s * x + c * y;
+            x = x_blk + mat.x;
+            y = y_blk + mat.y;
+            rotation += mat.rotation;
+        }
+    };
+
+    struct NestParaCInt
+    {
+        Clipper3r::cInt workspaceW; //Æ½Ì¨¿í
+        Clipper3r::cInt workspaceH;
+        Clipper3r::cInt modelsDist;
+        PlaceType packType;
+        bool parallel;
+        StartPoint sp;
+        int rotationStep;
+
+        NestParaCInt()
+        {
+            packType = PlaceType::CENTER_TO_SIDE;
+            modelsDist = 0;
+            workspaceW = 0;
+            workspaceH = 0;
+            parallel = true;
+            sp = StartPoint::NULLTYPE;
+            rotationStep = 8;
+        }
+
+        NestParaCInt(Clipper3r::cInt w, Clipper3r::cInt h, Clipper3r::cInt dist, PlaceType type, bool _parallel, StartPoint _sp, int _rotationStep = 8)
+        {
+            workspaceW = w;
+            workspaceH = h;
+            modelsDist = dist;
+            packType = type;
+            parallel = _parallel;
+            sp = _sp;
+            rotationStep = _rotationStep;
+        }
+    };
+
+    typedef std::function<void(int, const TransMatrix&)> PlaceFunc;
+    typedef std::function<void(const TransMatrix&)> PlaceOneFunc;
+    class NestItemer
+    {
+    public:
+        virtual ~NestItemer() {}
+        virtual const Clipper3r::Path& path() const = 0;
+        virtual Clipper3r::IntPoint translate() = 0;
+        virtual float rotation() = 0;
+    };
 
     void InitCfg(libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>& cfg, NestParaCInt para)
     {
@@ -257,7 +326,7 @@ namespace nestplacer
         return 0;
     }
 
-    bool NestPlacer::nest2d_base(const Clipper3r::Paths& ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData)
+    bool nest2d_base(const Clipper3r::Paths& ItemsPaths, NestParaCInt para, std::vector<TransMatrix>& transData)
     {
         PlaceType type = para.packType;
         size_t size = ItemsPaths.size();
@@ -502,7 +571,7 @@ namespace nestplacer
             Clipper3r::Paths allItem_pair(2);
             allItem_pair[0] = itemPath[2 * i];
             allItem_pair[1] = itemPath[2 * i + 1];
-            NestPlacer::nest2d_base(allItem_pair, para, transData_pair[i]);
+            nest2d_base(allItem_pair, para, transData_pair[i]);
             pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i], changMat);
             if (totalNum == inputSize)
                 pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
@@ -520,210 +589,7 @@ namespace nestplacer
 
     }
 
-    void NestPlacer::layout_all_nest(const std::vector < std::vector<trimesh::vec3>>& models, std::vector<int> modelIndices,
-        NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
-    {
-        trimesh::box3 basebox = para.workspaceBox;
-        Clipper3r::Paths allItem;
-        allItem.reserve(models.size());
-        for (std::vector<trimesh::vec3> m : models)
-        {
-            Clipper3r::Path oItem;
-            int m_size = m.size();
-            oItem.resize(m_size);
-            for (int i = 0; i < m_size; i++)
-            {
-                oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
-                oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
-            }
-            allItem.push_back(oItem);           
-        }
-
-        Clipper3r::cInt _imageW = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
-        Clipper3r::cInt _imageH = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
-        Clipper3r::cInt _dist = para.modelsDist * NEST_FACTOR;
-        std::vector<TransMatrix> transData;
-        NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
-
-        if (para.packType != PlaceType::CONCAVE)
-            nest2d_base(allItem, para_cInt, transData);
-        else
-        {
-            transData.resize(allItem.size());
-#if 0
-            pairPackPro(allItem, transData, para_cInt, allItem.size());
-
-#else
-            auto rotateDirUpDown = [&transData](Clipper3r::Paths input, int itemIdx)
-            {
-                Clipper3r::Path output = input[itemIdx];
-                auto vSize2 = [](const Clipper3r::IntPoint& p0)
-                {
-                    return p0.X * p0.X + p0.Y * p0.Y;
-                };
-                Clipper3r::Path convex = libnest2d::shapelike::convexHull(polygonLib::PolygonPro::polygonSimplyfy(output, 100));
-                int maxLineIdx = -1;
-                Clipper3r::cInt maxLen = 0;
-                for (int i = 1; i < convex.size(); i++)
-                {
-                    if (vSize2(convex[i] - convex[i - 1]) > maxLen * maxLen)
-                    {
-                        maxLineIdx = i;
-                        maxLen = sqrt(vSize2(convex[i] - convex[i - 1]));
-                    }
-                }
-                float angle = -atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
-                double c = cos(angle);
-                double s = sin(angle);
-
-                if (RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y > RotateByVector(convex[(maxLineIdx + convex.size() / 2) % convex.size()], Clipper3r::IntPoint(), c, s).Y)
-                {
-                    angle += angle > M_PIf ? -M_PIf : M_PIf;
-                    c = cos(angle);
-                    s = sin(angle);
-                }
-                if (angle != 0)
-                {
-                    for (Clipper3r::IntPoint& pt : output)
-                    {
-                        pt = RotateByVector(pt, Clipper3r::IntPoint(), c, s);
-                    }
-                    transData[itemIdx] = TransMatrix(0, 0, angle*180/ M_PIf);
-                }
-
-                return output;
-            };
-
-            int pair_num = allItem.size() / 2;
-            std::vector < std::vector<TransMatrix>> transData_pair(pair_num);
-            Clipper3r::Paths pair_convex(pair_num);
-#if defined(_OPENMP)
-#pragma omp parallel for
-#endif
-            for (int i = 0; i < pair_num; i++)
-            {
-                Clipper3r::Paths allItem_pair(2);
-                allItem_pair[0] = rotateDirUpDown(allItem, 2 * i);
-                allItem_pair[1] = rotateDirUpDown(allItem, 2 * i + 1);
-                nest2d_base(allItem_pair, para_cInt, transData_pair[i]);
-                pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i]);
-                pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
-            }
-
-            para_cInt.sp = StartPoint::BOTTOM_LEFT;
-            std::vector<TransMatrix> transData_blk;
-            nest2d_base(pair_convex, para_cInt, transData_blk);
-
-            std::vector<int> noPackedPathsId;        
-            Clipper3r::Paths non_packedPaths;
-            std::vector<std::vector<int>> itemId;
-            for (int i = 0; i < pair_num; i++)
-            {
-                if (transData_blk[i].x > 0 && transData_blk[i].x < _imageW && transData_blk[i].y > 0 && transData_blk[i].y < _imageH)
-                {
-                    non_packedPaths.push_back(pair_convex[i]);
-                    std::vector<int> PairItemId;
-                    PairItemId.push_back(2 * i);
-                    PairItemId.push_back(2 * i + 1);
-                    itemId.push_back(PairItemId);
-                }
-                else
-                {
-                    noPackedPathsId.push_back(2 * i);
-                    noPackedPathsId.push_back(2 * i + 1);
-                }
-            }        
-            for (int i = 0; i < noPackedPathsId.size(); i++)
-            {
-                int idx = noPackedPathsId[i];
-                non_packedPaths.push_back(allItem[idx]);
-                std::vector<int> singleItemId;
-                singleItemId.push_back(idx);
-                itemId.push_back(singleItemId);
-            }
-            if (allItem.size() % 2)
-            {
-                non_packedPaths.push_back(allItem.back());
-                std::vector<int> singleItemId;
-                singleItemId.push_back(allItem.size() - 1);
-                itemId.push_back(singleItemId);
-            }
-
-            if (noPackedPathsId.empty() && allItem.size() % 2 == 0)
-            {
-                for (int i = 0; i < transData_blk.size(); i++)
-                {
-                    transData_pair[i][0].merge(transData_blk[i]);
-                    transData[2 * i].merge(transData_pair[i][0]);
-                    transData_pair[i][1].merge(transData_blk[i]);
-                    transData[2 * i + 1].merge(transData_pair[i][1]);
-                }
-            }
-            else
-            {
-                std::vector<TransMatrix> transData_blk_dst;
-                nest2d_base(non_packedPaths, para_cInt, transData_blk_dst);
-                for (int i = 0; i < transData_blk_dst.size(); i++)
-                {
-                    std::vector<int> curItemId = itemId[i];
-                    if (curItemId.size() > 1)
-                    {
-                        int pairIdx = curItemId[0] / 2;
-                        transData_pair[pairIdx][0].merge(transData_blk_dst[i]);
-                        transData[curItemId[0]].merge(transData_pair[pairIdx][0]);
-                        transData_pair[pairIdx][1].merge(transData_blk_dst[i]);
-                        transData[curItemId[1]].merge(transData_pair[pairIdx][1]);
-                    }
-                    else
-                    {
-                        transData[curItemId[0]].merge(transData_blk_dst[i]);
-                    }
-                }
-            }
-#endif
-            int minX = INT_MAX, minY = INT_MAX, maxX = 0, maxY = 0;
-            for (int i = 0; i < allItem.size(); i++)
-            {
-                if (transData[i].x > 0 && transData[i].x < _imageW && transData[i].y > 0 && transData[i].y < _imageH)
-                {
-                    double r = transData[i].rotation * M_PIf / 180;
-                    double c = cos(r);
-                    double s = sin(r);
-                    Clipper3r::IntPoint offset = Clipper3r::IntPoint(transData[i].x, transData[i].y);
-                    for (Clipper3r::IntPoint itemPt : allItem[i])
-                    {
-                        itemPt = RotateByVector(itemPt, offset, c, s);
-                        if (itemPt.X < minX) minX = itemPt.X;
-                        if (itemPt.Y < minY) minY = itemPt.Y;
-                        if (itemPt.X > maxX) maxX = itemPt.X;
-                        if (itemPt.Y > maxY) maxY = itemPt.Y;
-                    }
-                }
-            }
-            Clipper3r::IntPoint offset2mid = Clipper3r::IntPoint((_imageW  - (minX + maxX)) / 2 + 0.5, (_imageH  - (minY + maxY)) / 2 + 0.5);
-            for (TransMatrix& mat : transData)
-            {
-                if (mat.x > 0 && mat.x < _imageW && mat.y > 0 && mat.y < _imageH)
-                {
-                    mat.merge(TransMatrix(offset2mid.X, offset2mid.Y, 0));
-                }
-            }  
-        }
-
-        /////settle models that can be settled inside
-        trimesh::vec3 total_offset;
-        for (size_t i = 0; i < modelIndices.size(); i++)
-        {
-            trimesh::vec3 newBoxCenter;
-            newBoxCenter.x = transData.at(i).x / NEST_FACTOR;
-            newBoxCenter.y = transData.at(i).y / NEST_FACTOR;
-            newBoxCenter.z = transData.at(i).rotation;
-            int modelIndexI = modelIndices[i];
-            modelPositionUpdateFunc(modelIndexI, newBoxCenter);
-        }
-    }
-
-    bool NestPlacer::nest2d(const std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func)
+    bool nest2d(const std::vector<NestItemer*>& items, NestParaCInt para, PlaceFunc func)
     {
         Clipper3r::Paths ItemsPaths;
         for (NestItemer* itemer : items)
@@ -740,7 +606,7 @@ namespace nestplacer
         return nestResult;
     }
 
-    bool NestPlacer::nest2d_base(const Clipper3r::Paths& ItemsPaths, const Clipper3r::Path& transData, const Clipper3r::Path& newItemPath, 
+    bool nest2d_base(const Clipper3r::Paths& ItemsPaths, const Clipper3r::Path& transData, const Clipper3r::Path& newItemPath, 
         NestParaCInt para, TransMatrix& NewItemTransData)
     {
         Clipper3r::cInt offsetX = 0, offsetY = 0;
@@ -859,34 +725,25 @@ namespace nestplacer
         return false;
     }
 
-    bool NestPlacer::layout_new_item(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
-        const std::vector<trimesh::vec3>& NewItem, NestParaFloat para, std::function<void(trimesh::vec3)> func)
+    bool nest2d(const std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func)
     {
-        trimesh::box3 basebox = para.workspaceBox;
-        Clipper3r::cInt w = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
-        Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
-        Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
-        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
         Clipper3r::Paths ItemsPaths;
-        for (int i = 0; i < models.size(); i++)
+        Clipper3r::Path transData_cInt;
+        for (NestItemer* itemer : items)
         {
-            std::vector<trimesh::vec3> model = models[i];
-            ItemsPaths.push_back(ItemPathDataTrans(model, true));
+            ItemsPaths.emplace_back(getItemPath(itemer, para.packType));
+            transData_cInt.emplace_back(itemer->translate());
         }
-        Clipper3r::Path transData_cInt = ItemPathDataTrans(transData, false);
-        Clipper3r::Path newItemPath = ItemPathDataTrans(NewItem, true);
-        TransMatrix NewItemTransData;
-        bool can_pack = nest2d_base(ItemsPaths, transData_cInt, newItemPath, para_cInt, NewItemTransData);
 
-        trimesh::vec3 tmp;
-        tmp.x = NewItemTransData.x / NEST_FACTOR;
-        tmp.y = NewItemTransData.y / NEST_FACTOR;
-        tmp.z = NewItemTransData.rotation;
-        func(tmp);
+        Clipper3r::Path newItemPath = getItemPath(item, para.packType);
+        TransMatrix NewItemTransData;
+        bool can_pack = nest2d_base(ItemsPaths, transData_cInt, newItemPath, para, NewItemTransData);
+
+        func(NewItemTransData);
         return can_pack;
     }
 
-    void NestPlacer::nest2d_base(const Clipper3r::Paths& ItemsPaths, const Clipper3r::Path& transData, const Clipper3r::Paths& newItemPaths,
+    void nest2d_base(const Clipper3r::Paths& ItemsPaths, const Clipper3r::Path& transData, const Clipper3r::Paths& newItemPaths,
         NestParaCInt para, std::vector<TransMatrix>& NewItemTransDatas)
     {
         NewItemTransDatas.resize(newItemPaths.size());
@@ -1008,7 +865,7 @@ namespace nestplacer
         }  
     }
 
-    void NestPlacer::layout_new_items(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
+    void layout_new_items(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
         const std::vector < std::vector<trimesh::vec3>>& NewItems, NestParaFloat para, std::function<void(int, trimesh::vec3)> func)
     {
         trimesh::box3 basebox = para.workspaceBox;
@@ -1042,23 +899,233 @@ namespace nestplacer
         }
     }
 
-    bool NestPlacer::nest2d(const std::vector<NestItemer*>& items, NestItemer* item, NestParaCInt para, PlaceOneFunc func)
+    void layout_all_nest(const std::vector < std::vector<trimesh::vec3>>& models, std::vector<int> modelIndices,
+        NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc)
     {
-        Clipper3r::Paths ItemsPaths;
-        Clipper3r::Path transData_cInt;
-        for (NestItemer* itemer : items)
+        trimesh::box3 basebox = para.workspaceBox;
+        Clipper3r::Paths allItem;
+        allItem.reserve(models.size());
+        for (std::vector<trimesh::vec3> m : models)
         {
-            ItemsPaths.emplace_back(getItemPath(itemer, para.packType));
-            transData_cInt.emplace_back(itemer->translate());
+            Clipper3r::Path oItem;
+            int m_size = m.size();
+            oItem.resize(m_size);
+            for (int i = 0; i < m_size; i++)
+            {
+                oItem.at(i).X = (Clipper3r::cInt)(m.at(i).x * NEST_FACTOR);
+                oItem.at(i).Y = (Clipper3r::cInt)(m.at(i).y * NEST_FACTOR);
+            }
+            allItem.push_back(oItem);
         }
-            
-        Clipper3r::Path newItemPath = getItemPath(item, para.packType);
-        TransMatrix NewItemTransData;
-        bool can_pack = nest2d_base(ItemsPaths, transData_cInt, newItemPath, para, NewItemTransData);
 
-        func(NewItemTransData);
-        return can_pack;
+        Clipper3r::cInt _imageW = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
+        Clipper3r::cInt _imageH = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
+        Clipper3r::cInt _dist = para.modelsDist * NEST_FACTOR;
+        std::vector<TransMatrix> transData;
+        NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
+
+        if (para.packType != PlaceType::CONCAVE)
+            nest2d_base(allItem, para_cInt, transData);
+        else
+        {
+            transData.resize(allItem.size());
+#if 0
+            pairPackPro(allItem, transData, para_cInt, allItem.size());
+
+#else
+            auto rotateDirUpDown = [&transData](Clipper3r::Paths input, int itemIdx)
+            {
+                Clipper3r::Path output = input[itemIdx];
+                auto vSize2 = [](const Clipper3r::IntPoint& p0)
+                {
+                    return p0.X * p0.X + p0.Y * p0.Y;
+                };
+                Clipper3r::Path convex = libnest2d::shapelike::convexHull(polygonLib::PolygonPro::polygonSimplyfy(output, 100));
+                int maxLineIdx = -1;
+                Clipper3r::cInt maxLen = 0;
+                for (int i = 1; i < convex.size(); i++)
+                {
+                    if (vSize2(convex[i] - convex[i - 1]) > maxLen * maxLen)
+                    {
+                        maxLineIdx = i;
+                        maxLen = sqrt(vSize2(convex[i] - convex[i - 1]));
+                    }
+                }
+                float angle = -atan2f(convex[maxLineIdx].Y - convex[maxLineIdx - 1].Y, convex[maxLineIdx].X - convex[maxLineIdx - 1].X);
+                double c = cos(angle);
+                double s = sin(angle);
+
+                if (RotateByVector(convex[maxLineIdx], Clipper3r::IntPoint(), c, s).Y > RotateByVector(convex[(maxLineIdx + convex.size() / 2) % convex.size()], Clipper3r::IntPoint(), c, s).Y)
+                {
+                    angle += angle > M_PIf ? -M_PIf : M_PIf;
+                    c = cos(angle);
+                    s = sin(angle);
+                }
+                if (angle != 0)
+                {
+                    for (Clipper3r::IntPoint& pt : output)
+                    {
+                        pt = RotateByVector(pt, Clipper3r::IntPoint(), c, s);
+                    }
+                    transData[itemIdx] = TransMatrix(0, 0, angle * 180 / M_PIf);
+                }
+
+                return output;
+            };
+
+            int pair_num = allItem.size() / 2;
+            std::vector < std::vector<TransMatrix>> transData_pair(pair_num);
+            Clipper3r::Paths pair_convex(pair_num);
+#if defined(_OPENMP)
+#pragma omp parallel for
+#endif
+            for (int i = 0; i < pair_num; i++)
+            {
+                Clipper3r::Paths allItem_pair(2);
+                allItem_pair[0] = rotateDirUpDown(allItem, 2 * i);
+                allItem_pair[1] = rotateDirUpDown(allItem, 2 * i + 1);
+                nest2d_base(allItem_pair, para_cInt, transData_pair[i]);
+                pair_convex[i] = getPairConcave(allItem_pair, transData_pair[i]);
+                pair_convex[i] = RotToMinRect(pair_convex[i], transData_pair[i]);
+            }
+
+            para_cInt.sp = StartPoint::BOTTOM_LEFT;
+            std::vector<TransMatrix> transData_blk;
+            nest2d_base(pair_convex, para_cInt, transData_blk);
+
+            std::vector<int> noPackedPathsId;
+            Clipper3r::Paths non_packedPaths;
+            std::vector<std::vector<int>> itemId;
+            for (int i = 0; i < pair_num; i++)
+            {
+                if (transData_blk[i].x > 0 && transData_blk[i].x < _imageW && transData_blk[i].y > 0 && transData_blk[i].y < _imageH)
+                {
+                    non_packedPaths.push_back(pair_convex[i]);
+                    std::vector<int> PairItemId;
+                    PairItemId.push_back(2 * i);
+                    PairItemId.push_back(2 * i + 1);
+                    itemId.push_back(PairItemId);
+                }
+                else
+                {
+                    noPackedPathsId.push_back(2 * i);
+                    noPackedPathsId.push_back(2 * i + 1);
+                }
+            }
+            for (int i = 0; i < noPackedPathsId.size(); i++)
+            {
+                int idx = noPackedPathsId[i];
+                non_packedPaths.push_back(allItem[idx]);
+                std::vector<int> singleItemId;
+                singleItemId.push_back(idx);
+                itemId.push_back(singleItemId);
+            }
+            if (allItem.size() % 2)
+            {
+                non_packedPaths.push_back(allItem.back());
+                std::vector<int> singleItemId;
+                singleItemId.push_back(allItem.size() - 1);
+                itemId.push_back(singleItemId);
+            }
+
+            if (noPackedPathsId.empty() && allItem.size() % 2 == 0)
+            {
+                for (int i = 0; i < transData_blk.size(); i++)
+                {
+                    transData_pair[i][0].merge(transData_blk[i]);
+                    transData[2 * i].merge(transData_pair[i][0]);
+                    transData_pair[i][1].merge(transData_blk[i]);
+                    transData[2 * i + 1].merge(transData_pair[i][1]);
+                }
+            }
+            else
+            {
+                std::vector<TransMatrix> transData_blk_dst;
+                nest2d_base(non_packedPaths, para_cInt, transData_blk_dst);
+                for (int i = 0; i < transData_blk_dst.size(); i++)
+                {
+                    std::vector<int> curItemId = itemId[i];
+                    if (curItemId.size() > 1)
+                    {
+                        int pairIdx = curItemId[0] / 2;
+                        transData_pair[pairIdx][0].merge(transData_blk_dst[i]);
+                        transData[curItemId[0]].merge(transData_pair[pairIdx][0]);
+                        transData_pair[pairIdx][1].merge(transData_blk_dst[i]);
+                        transData[curItemId[1]].merge(transData_pair[pairIdx][1]);
+                    }
+                    else
+                    {
+                        transData[curItemId[0]].merge(transData_blk_dst[i]);
+                    }
+                }
+            }
+#endif
+            int minX = INT_MAX, minY = INT_MAX, maxX = 0, maxY = 0;
+            for (int i = 0; i < allItem.size(); i++)
+            {
+                if (transData[i].x > 0 && transData[i].x < _imageW && transData[i].y > 0 && transData[i].y < _imageH)
+                {
+                    double r = transData[i].rotation * M_PIf / 180;
+                    double c = cos(r);
+                    double s = sin(r);
+                    Clipper3r::IntPoint offset = Clipper3r::IntPoint(transData[i].x, transData[i].y);
+                    for (Clipper3r::IntPoint itemPt : allItem[i])
+                    {
+                        itemPt = RotateByVector(itemPt, offset, c, s);
+                        if (itemPt.X < minX) minX = itemPt.X;
+                        if (itemPt.Y < minY) minY = itemPt.Y;
+                        if (itemPt.X > maxX) maxX = itemPt.X;
+                        if (itemPt.Y > maxY) maxY = itemPt.Y;
+                    }
+                }
+            }
+            Clipper3r::IntPoint offset2mid = Clipper3r::IntPoint((_imageW - (minX + maxX)) / 2 + 0.5, (_imageH - (minY + maxY)) / 2 + 0.5);
+            for (TransMatrix& mat : transData)
+            {
+                if (mat.x > 0 && mat.x < _imageW && mat.y > 0 && mat.y < _imageH)
+                {
+                    mat.merge(TransMatrix(offset2mid.X, offset2mid.Y, 0));
+                }
+            }
+        }
+
+        /////settle models that can be settled inside
+        trimesh::vec3 total_offset;
+        for (size_t i = 0; i < modelIndices.size(); i++)
+        {
+            trimesh::vec3 newBoxCenter;
+            newBoxCenter.x = transData.at(i).x / NEST_FACTOR;
+            newBoxCenter.y = transData.at(i).y / NEST_FACTOR;
+            newBoxCenter.z = transData.at(i).rotation;
+            int modelIndexI = modelIndices[i];
+            modelPositionUpdateFunc(modelIndexI, newBoxCenter);
+        }
     }
 
+    bool layout_new_item(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
+        const std::vector<trimesh::vec3>& NewItem, NestParaFloat para, std::function<void(trimesh::vec3)> func)
+    {
+        trimesh::box3 basebox = para.workspaceBox;
+        Clipper3r::cInt w = (basebox.max.x - basebox.min.x) * NEST_FACTOR;
+        Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
+        Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
+        NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
+        Clipper3r::Paths ItemsPaths;
+        for (int i = 0; i < models.size(); i++)
+        {
+            std::vector<trimesh::vec3> model = models[i];
+            ItemsPaths.push_back(ItemPathDataTrans(model, true));
+        }
+        Clipper3r::Path transData_cInt = ItemPathDataTrans(transData, false);
+        Clipper3r::Path newItemPath = ItemPathDataTrans(NewItem, true);
+        TransMatrix NewItemTransData;
+        bool can_pack = nest2d_base(ItemsPaths, transData_cInt, newItemPath, para_cInt, NewItemTransData);
 
+        trimesh::vec3 tmp;
+        tmp.x = NewItemTransData.x / NEST_FACTOR;
+        tmp.y = NewItemTransData.y / NEST_FACTOR;
+        tmp.z = NewItemTransData.rotation;
+        func(tmp);
+        return can_pack;
+    }
 }

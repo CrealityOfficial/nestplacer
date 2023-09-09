@@ -1,42 +1,25 @@
 set(CMAKE_CXX_STANDARD 14)
 
-set(SRCS nestplacer.cpp
-		 include/nestplacer/export.h
-		 include/nestplacer/nestplacer.h
-		 )
+__files_group(${CMAKE_CURRENT_SOURCE_DIR}/nestplacer/ SRCS)
+__files_group(${CMAKE_CURRENT_SOURCE_DIR}/impl/ IMPLS)
 
-__cc_find(Boost)
-
-if(NOT WIN32)
-	add_compile_options(-fPIC)
-	add_definitions(-DHAVE_PTHREADS)
-endif()
+list(APPEND SRCS ${IMPLS})
+__cc_find(trimesh2)
+__assert_target(trimesh2)
 
 __cc_find(libnest2d)
 __cc_find(clipper3r)
-__cc_find(nlopt)
-__cc_find(trimesh2)
+__cc_find(nlopt_static)
 
-set(LIBS libnest2d clipper3r nlopt trimesh2)
+__assert_target(libnest2d)
+__assert_target(clipper3r)
+__assert_target(nlopt_static)
 
-if(BUILD_NESTPLACER_STATIC)
-    __add_real_target(nestplacer lib SOURCE ${SRCS}
-                                LIB ${LIBS}
-                                DEF _NESTPLACER_DLL
-                                INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS} ${NLOPT_INCLUDE_DIRS}
-                                INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
-								OPENMP
-								)
-else()
-    __add_real_target(nestplacer dll SOURCE ${SRCS}
-                                LIB ${LIBS}
-                                DEF _NESTPLACER_DLL
-                                INC ${CMAKE_CURRENT_SOURCE_DIR}/include ${BOOST_INCLUDE_DIRS} ${NLOPT_INCLUDE_DIRS}
-                                INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
-								OPENMP
-								)
-endif()
+set(LIBS libnest2d clipper3r nlopt_static)
+set(ILIBS trimesh2)
+
+__add_common_library(nestplacer OPENMP)
 
 if(CC_INSTALL_NESTPLACER)
-	__install_directory_specif(${CMAKE_CURRENT_SOURCE_DIR}/include/ nestplacer)
+	__install_directory_specif(${CMAKE_CURRENT_SOURCE_DIR}/nestplacer nestplacer)
 endif()
