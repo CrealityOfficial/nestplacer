@@ -42,7 +42,7 @@ namespace nestplacer
 		{
 			workspaceBox = trimesh::box3();
 			packType = PlaceType::CENTER_TO_SIDE;
-			modelsDist = 0.f;
+			modelsDist = 3.0f;
 			parallel = true;
 			rotationStep = 8;
 		}
@@ -57,6 +57,33 @@ namespace nestplacer
 		}
 	};
 
+    struct NestPara {
+        NestPara() {}
+        trimesh::box3 workspaceBox = trimesh::box3();
+        float modelsDist = 3.0f;
+        float edgeDist = 1.0f;
+        PlaceType packType = PlaceType::CENTER_TO_SIDE;
+        bool parallel = true;
+        float rotationAngle = 20.0f;
+
+        NestPara(trimesh::box3 workspace, float dist, float offset, PlaceType type, bool _parallel, float _rotationAngle = 20.0f)
+        {
+            workspaceBox = workspace;
+            modelsDist = dist;
+            edgeDist = offset;
+            packType = type;
+            parallel = _parallel;
+            rotationAngle = _rotationAngle;
+        }
+    };
+
+    class NestPlacerDebugger {
+    public:
+        virtual ~NestPlacerDebugger() {}
+
+        virtual void onUpdate(int index, const std::vector<trimesh::vec3>& polygons) = 0;
+    };
+
 	/*所有模型布局*/
 	NESTPLACER_API void layout_all_nest(const std::vector < std::vector<trimesh::vec3>>& models, std::vector<int> modelIndices,
 		NestParaFloat para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc);
@@ -66,6 +93,11 @@ namespace nestplacer
 	/*新增多个模型布局*/
 	NESTPLACER_API void layout_new_items(const std::vector < std::vector<trimesh::vec3>>& models, const std::vector<trimesh::vec3>& transData,
 		const std::vector < std::vector<trimesh::vec3>>& NewItems, NestParaFloat para, std::function<void(int, trimesh::vec3)> func);
+    
+    NESTPLACER_API void layout_all_nest2(const std::vector < std::vector<trimesh::vec3>>& models, std::vector<int> modelIndices,
+        NestPara para, std::function<void(int, trimesh::vec3)> modelPositionUpdateFunc, NestPlacerDebugger* debugger = nullptr);
+
+
 }
 
 
