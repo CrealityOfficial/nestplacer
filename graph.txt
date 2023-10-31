@@ -1,0 +1,5 @@
+trimesh2/0.0.3
+boost/0.0.2
+clipper3r/0.0.2
+tbb/0.0.2
+nlopt_static/1.0.0

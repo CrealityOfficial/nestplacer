@@ -7,18 +7,20 @@ list(APPEND SRCS ${IMPLS})
 __cc_find(trimesh2)
 __assert_target(trimesh2)
 
-__cc_find(libnest2d)
+__cc_find(tbb)
 __cc_find(clipper3r)
 __cc_find(nlopt_static)
 __cc_find(boost_header)
 
-__assert_target(libnest2d)
 __assert_target(clipper3r)
 __assert_target(nlopt_static)
 __assert_target(boost_header)
 
-set(LIBS libnest2d clipper3r nlopt_static boost_header)
+set(LIBS clipper3r nlopt_static boost_header)
 set(ILIBS trimesh2)
+set(DEFS)
+
+include(libnest2d/libnest2d.cmake)
 
 if(CC_BC_WIN)
 else()
