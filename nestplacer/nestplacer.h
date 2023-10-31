@@ -81,7 +81,7 @@ namespace nestplacer
     public:
         virtual ~NestPlacerDebugger() {}
 
-        virtual void onUpdate(int index, const std::vector<trimesh::vec3>& polygons) = 0;
+        virtual void onUpdate(int index, const trimesh::vec3& rt) = 0;
     };
 
 	/*所有模型布局*/

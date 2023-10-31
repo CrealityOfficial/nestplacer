@@ -1320,7 +1320,23 @@ namespace nestplacer
         NestParaToCInt para_cInt = NestParaToCInt(_imageW, _imageH, _dist, _offset, para.packType, para.parallel, StartPoint::NULLTYPE, para.rotationAngle);
 
         if (para.packType != PlaceType::CONCAVE)
+        {
+#if _DEBUG
+            if (debugger)
+            {
+                int count = (int)models.size();
+                for (int i = 0; i < 100; ++i)
+                {
+                    for (int j = 0; j < count; ++j)
+                    {
+                        trimesh::vec3 rt((float)i * (float)j, (float)i * (float)j, (float)i * 5.0f);
+                        debugger->onUpdate(j, rt);
+                    }
+                }
+            }
+#endif
             nest2d_base2(allItem, para_cInt, transData);
+        }
         else {
             transData.resize(allItem.size());
 #if 0
