@@ -47,6 +47,7 @@ namespace nestplacer {
         bool parallel;
         StartPoint sp;
         int rotationStep;
+        ccglobal::Tracer* tracer = nullptr;
 
         NestParaCInt()
         {

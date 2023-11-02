@@ -266,6 +266,18 @@ namespace nestplacer
         transData.resize(size);
 
         libnest2d::NestControl ctl;
+        ctl.progressfn = [&size, &para](int remain) {
+            if (para.tracer)
+            {
+                para.tracer->progress((float)((int)size - remain) / (float)size);
+            }
+        };
+        ctl.stopcond = [&para]()->bool {
+            if (para.tracer)
+                return para.tracer->interrupt();
+            return false;
+        };
+
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> cfg;
         InitCfg(cfg, para);
 
@@ -312,7 +324,6 @@ namespace nestplacer
         offsetY += (para.modelsDist - egde_dist) / 2;
         if (para.modelsDist == 0) para.modelsDist = 1;
         libnest2d::Box maxBox = libnest2d::Box(imgW_dst, imgH_dst, { imgW_dst / 2, imgH_dst / 2 });
-
 
         std::size_t result = libnest2d::nest(input, maxBox, para.modelsDist, cfg, ctl);
 
@@ -806,6 +817,8 @@ namespace nestplacer
         Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
         NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
+        para_cInt.tracer = para.tracer;
+
         Clipper3r::Paths ItemsPaths;
         for (int i = 0; i < models.size(); i++)
         {
@@ -856,6 +869,7 @@ namespace nestplacer
         Clipper3r::cInt _dist = para.modelsDist * NEST_FACTOR;
         std::vector<TransMatrix> transData;
         NestParaCInt para_cInt = NestParaCInt(_imageW, _imageH, _dist, para.packType, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
+        para_cInt.tracer = para.tracer;
 
         if (para.packType != PlaceType::CONCAVE)
             nest2d_base(allItem, para_cInt, transData);
@@ -1043,6 +1057,8 @@ namespace nestplacer
         Clipper3r::cInt h = (basebox.max.y - basebox.min.y) * NEST_FACTOR;
         Clipper3r::cInt d = para.modelsDist * NEST_FACTOR;
         NestParaCInt para_cInt = NestParaCInt(w, h, d, PlaceType::NULLTYPE, para.parallel, StartPoint::NULLTYPE, para.rotationStep);
+        para_cInt.tracer = para.tracer;
+
         Clipper3r::Paths ItemsPaths;
         for (int i = 0; i < models.size(); i++)
         {

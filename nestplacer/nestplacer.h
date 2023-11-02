@@ -1,6 +1,7 @@
 #ifndef _NESTPLACER_H
 #define _NESTPLACER_H
 #include "nestplacer/export.h"
+#include "ccglobal/tracer.h"
 
 #include "trimesh2/Box.h"
 #include <functional>
@@ -37,6 +38,7 @@ namespace nestplacer
 		PlaceType packType;
 		bool parallel;
 		int rotationStep;
+		ccglobal::Tracer* tracer = nullptr;
 
 		NestParaFloat()
 		{
