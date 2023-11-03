@@ -262,42 +262,45 @@ inline TMultiShape<PolygonImpl> clipper_execute(
 
     std::function<void(Clipper3r::PolyNode*, PolygonImpl&)> processHole;
 
-    auto processPoly = [&retv, &processHole](Clipper3r::PolyNode *pptr) {
+    auto processPoly = [&retv, &processHole](Clipper3r::PolyNode * pptr) {
         PolygonImpl poly;
         poly.Contour.swap(pptr->Contour);
 
         assert(!pptr->IsHole());
-        
-        if(!poly.Contour.empty() ) {
-            auto front_p = poly.Contour.front();
-            auto &back_p  = poly.Contour.back();
-            if(front_p.X != back_p.X || front_p.Y != back_p.X) 
+
+        if (!poly.Contour.empty()) {
+            const auto& front_p = poly.Contour.front();
+            const auto& back_p = poly.Contour.back();
+            if (front_p.X != back_p.X || front_p.Y != back_p.Y)
                 poly.Contour.emplace_back(front_p);
         }
 
-        for(auto h : pptr->Childs) { processHole(h, poly); }
+        for (auto& h : pptr->Childs)
+            processHole(h, poly);
+
         retv.push_back(poly);
     };
 
-    processHole = [&processPoly](Clipper3r::PolyNode *pptr, PolygonImpl& poly)
-    {
+    processHole = [&processPoly](const Clipper3r::PolyNode * pptr, PolygonImpl & poly) {
         poly.Holes.emplace_back(std::move(pptr->Contour));
 
         assert(pptr->IsHole());
-        
-        if(!poly.Contour.empty() ) {
-            auto front_p = poly.Contour.front();
-            auto &back_p  = poly.Contour.back();
-            if(front_p.X != back_p.X || front_p.Y != back_p.X) 
+
+        if (!poly.Contour.empty()) {
+            const auto& front_p = poly.Contour.front();
+            const auto& back_p = poly.Contour.back();
+            if (front_p.X != back_p.X || front_p.Y != back_p.Y)
                 poly.Contour.emplace_back(front_p);
         }
 
-        for(auto c : pptr->Childs) processPoly(c);
+        for (auto& c : pptr->Childs)
+            processPoly(c);
     };
 
     auto traverse = [&processPoly] (Clipper3r::PolyNode *node)
     {
-        for(auto ch : node->Childs) processPoly(ch);
+        for(auto& ch : node->Childs) 
+            processPoly(ch);
     };
 
     traverse(&result);
