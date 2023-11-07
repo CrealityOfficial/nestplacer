@@ -218,7 +218,7 @@ public:
     inline void radius(double r) { radius_ = r; }
     
     inline double area() const BP2D_NOEXCEPT {
-        return Pi_2 * radius_ * radius_;
+        return Pi * radius_ * radius_;
     }
 };
 
@@ -451,7 +451,8 @@ inline Unit _Segment<P>::sqlength() const
 template<class T>
 enable_if_t<std::is_floating_point<T>::value, T> modulo(const T &v, const T &m)
 {
-    return 0;
+    T result = std::fmod(v, m);
+    return (result >= 0) ? result : result + m;
 }
 template<class T>
 enable_if_t<std::is_integral<T>::value, T> modulo(const T &v, const T &m)
@@ -476,8 +477,8 @@ inline _Box<P> _Box<P>::infinite(const P& center) {
     C Mx = C((std::numeric_limits<C>::lowest() + 2 * getX(center)) / 2.01);
     C My = C((std::numeric_limits<C>::lowest() + 2 * getY(center)) / 2.01);
     
-    ret.maxCorner() = center - P{Mx, My};
-    ret.minCorner() = center + P{Mx, My};
+    ret.minCorner() = center - P{Mx, My};
+    ret.maxCorner() = center + P{Mx, My};
     
     return ret;
 }
@@ -1130,8 +1131,16 @@ template<class TB, class TC>
 inline bool isInside(const TB& box, const TC& circ,
                      const BoxTag&, const CircleTag&)
 {
-    return isInside(box.minCorner(), circ, PointTag(), CircleTag()) &&
-           isInside(box.maxCorner(), circ, PointTag(), CircleTag());
+    auto minX = getX(box.minCorner());
+    auto maxX = getX(box.maxCorner());
+    auto minY = getY(box.minCorner());
+    auto maxY = getY(box.maxCorner());
+
+    bool inside = (isInside(box.minCorner(), circ, PointTag(), CircleTag()) &&
+        isInside(box.maxCorner(), circ, PointTag(), CircleTag()));
+    inside &= isInside({ minX,maxY }, circ, PointTag(), CircleTag());
+    inside &= isInside({ maxX,minY }, circ, PointTag(), CircleTag());
+    return inside;
 }
 
 template<class TBGuest, class TBHost>
