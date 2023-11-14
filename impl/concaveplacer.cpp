@@ -28,16 +28,16 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
-        config.placer_config.object_function = [](const libnest2d::Item& item)  //优化方向
-        {
-            return 6;
-        };
+        //config.placer_config.object_function = [](const libnest2d::Item& item)  //优化方向
+        //{
+        //    return 3;
+        //};
     }
 
 	void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param)
 	{
         size_t size = models.size();
-        if (size)
+        if (size == 0)
             return;
 
         libnest2d::NestControl ctl;
@@ -61,6 +61,8 @@ namespace nestplacer
         for (int i = 0; i < size; i++)
         {
             Clipper3r::Path path;
+            if (!Clipper3r::Orientation(path))
+                Clipper3r::ReversePath(path);
             convert(models.at(i), path);
             inputs.emplace_back(libnest2d::Item(std::move(path)));
             inputs.back().convexCal(false);
@@ -70,7 +72,7 @@ namespace nestplacer
         Clipper3r::IntPoint maxPoint(convert(param.box.max));
         Clipper3r::IntPoint rect = maxPoint - minPoint;
 
-        libnest2d::Box binBox = libnest2d::Box(rect.X, rect.Y, convert(param.box.center() / 2.0f));
+        libnest2d::Box binBox = libnest2d::Box(rect.X, rect.Y, convert(param.box.center()));
 
         std::size_t result = libnest2d::nest(inputs, binBox, distance, config, ctl);
 
