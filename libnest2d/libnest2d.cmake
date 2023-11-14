@@ -14,9 +14,9 @@ list(APPEND SRCS
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/placers/bottomleftplacer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/placers/nfpplacer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/selections/selection_boilerplate.hpp
-    #${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/selections/filler.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/selections/filler.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/selections/firstfit.hpp
-    #${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/selections/djd_heuristic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/selections/djd_heuristic.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/backends/clipper/geometries.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/backends/clipper/clipper_polygon.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/optimizers/nlopt/nlopt_boilerplate.hpp
@@ -25,9 +25,25 @@ list(APPEND SRCS
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/optimizers/nlopt/genetic.hpp
     #${CMAKE_CURRENT_LIST_DIR}/src/libnest2d.cpp
     ${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/libnfporb.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/history.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/geometry.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/svg.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/translation_vector.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/wkt.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/algo/find_feasible.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/algo/search_start.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/algo/select_next.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/algo/slide.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/algo/touching_point.hpp
+	${CMAKE_CURRENT_LIST_DIR}/include/libnest2d/nfp/algo/trim_vector.hpp
+	
 	${CMAKE_CURRENT_LIST_DIR}/include/polygonLib/polygonLib.h
 	${CMAKE_CURRENT_LIST_DIR}/include/polygonLib/delaunator.h
+	
 	${CMAKE_CURRENT_LIST_DIR}/src/polygonLib.cpp
+	${CMAKE_CURRENT_LIST_DIR}/src/svg.cpp
+	${CMAKE_CURRENT_LIST_DIR}/src/libnfporb.cpp
+	${CMAKE_CURRENT_LIST_DIR}/src/geometry.cpp
 	
 	${CMAKE_CURRENT_LIST_DIR}/tools/benchmark.h
 	${CMAKE_CURRENT_LIST_DIR}/tools/svgtools.hpp

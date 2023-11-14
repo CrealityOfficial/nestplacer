@@ -14,8 +14,10 @@
 #endif
 #include <libnest2d/geometry_traits_nfp.hpp>
 #include <libnest2d/optimizer.hpp>
+
+#include <libnest2d/nfp/svg.hpp>
 #include <libnest2d/nfp/libnfporb.hpp>
-#include <polygonLib/polygonLib.h>"
+#include "polygonLib/polygonLib.h"
 
 #include "placer_boilerplate.hpp"
 

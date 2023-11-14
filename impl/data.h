@@ -3,6 +3,9 @@
 #include <clipper3r/clipper.hpp>
 #include "nestplacer/nestplacer.h"
 
+#define INT2MM(n) (static_cast<double>(n) / 1000.0)
+#define MM2INT(n) (static_cast<Clipper3r::cInt>((n) * 1000 + 0.5 * (((n) > 0) - ((n) < 0))))
+
 namespace nestplacer {
 
     struct TransMatrix
