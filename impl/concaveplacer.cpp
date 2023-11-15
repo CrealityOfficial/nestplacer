@@ -30,6 +30,21 @@ namespace nestplacer
         //};
     }
 
+    void initControl(libnest2d::NestControl& control, size_t size, ccglobal::Tracer* tracer)
+    {
+        control.progressfn = [&size, tracer](int remain) {
+            if (tracer)
+            {
+                tracer->progress((float)((int)size - remain) / (float)size);
+            }
+        };
+        control.stopcond = [tracer]()->bool {
+            if (tracer)
+                return tracer->interrupt();
+            return false;
+        };
+    }
+
     void initDebugger(NfpFisrtFitConfig& config, ConcaveNestDebugger* debugger)
     {
         if (!debugger)
@@ -56,17 +71,7 @@ namespace nestplacer
             return;
 
         libnest2d::NestControl ctl;
-        ctl.progressfn = [&size, &param](int remain) {
-            if (param.tracer)
-            {
-                param.tracer->progress((float)((int)size - remain) / (float)size);
-            }
-        };
-        ctl.stopcond = [&param]()->bool {
-            if (param.tracer)
-                return param.tracer->interrupt();
-            return false;
-        };
+        initControl(ctl, size, param.tracer);
 
         NfpFisrtFitConfig config;
         initConfig(config, param);
@@ -83,11 +88,7 @@ namespace nestplacer
             inputs.back().convexCal(false);
         }
 
-        Clipper3r::IntPoint minPoint(convert(param.box.min));
-        Clipper3r::IntPoint maxPoint(convert(param.box.max));
-        Clipper3r::IntPoint rect = maxPoint - minPoint;
-
-        libnest2d::Box binBox = libnest2d::Box(rect.X, rect.Y, convert(param.box.center()));
+        libnest2d::Box binBox = convert(param.box);
 
         std::size_t result = libnest2d::nest(inputs, binBox, distance, config, ctl);
 
@@ -101,4 +102,127 @@ namespace nestplacer
             param.callback((int)i, rt);
         }
 	}
+
+    class NestPlacerImpl
+    {
+    public:
+        NestPlacerImpl()
+            : size(0)
+        {
+
+        }
+
+        ~NestPlacerImpl()
+        {
+
+        }
+
+        void setInputs(const ConcaveItems& models) 
+        {
+            inputs.clear();
+            size = (int)models.size();
+
+            for (int i = 0; i < size; i++)
+            {
+                Clipper3r::Path path;
+                convert(models.at(i), path);
+                inputs.emplace_back(libnest2d::Item(std::move(path)));
+                inputs.back().convexCal(false);
+            }
+        }
+
+        bool valid() 
+        {
+            return size > 0;
+        }
+
+        void invokeCallback(NestCallback callback){
+
+            if (callback)
+            {
+                for (size_t i = 0; i < size; ++i)
+                {
+                    const libnest2d::Item& item = inputs.at(i);
+                    NestRT rt;
+                    rt.x = INT2MM(item.translation().X);
+                    rt.y = INT2MM(item.translation().Y);
+                    rt.z = item.rotation().toDegrees();
+                    callback((int)i, rt);
+                }
+            }
+        }
+
+        std::vector<libnest2d::Item> inputs;
+        int size;
+    };
+
+    NestPlacer::NestPlacer()
+        : debugger(nullptr)
+        , impl(new NestPlacerImpl())
+    {
+    }
+
+    NestPlacer::~NestPlacer()
+    {
+
+    }
+
+    void NestPlacer::setInput(const ConcaveItems& models)
+    {
+        impl->setInputs(models);
+    }
+
+    void NestPlacer::setDebugger(ConcaveNestDebugger* _debugger)
+    {
+        debugger = debugger;
+    }
+
+    void NestPlacer::layout(const NestConcaveParam& param)
+    {
+        libnest2d::NestControl ctl;
+        initControl(ctl, impl->size, param.tracer);
+
+        NfpFisrtFitConfig config;
+        initConfig(config, param);
+        initDebugger(config, debugger);
+
+        Clipper3r::cInt distance = MM2INT(param.distance);
+        libnest2d::Box binBox = convert(param.box);
+
+        std::size_t result = libnest2d::nest(impl->inputs, binBox, distance, config, ctl);
+
+        impl->invokeCallback(param.callback);
+    }
+
+    void NestPlacer::testNFP(trimesh::vec3& point, DebugPolygon& poly, std::vector<trimesh::vec3>& lines)
+    {
+        using namespace libnest2d;
+        if (impl->inputs.size() != 2)
+            return;
+
+        const Item& fixedItem = impl->inputs.at(0);
+        const Item& orbItem = impl->inputs.at(1);
+
+        auto& fixedp = fixedItem.transformedShape();
+        auto& orbp = orbItem.transformedShape();
+
+        struct NfpDebugger {
+            void onEdges(const std::vector<_Segment<PointImpl>>& edges) {
+                for (const _Segment<PointImpl>& segment : edges)
+                {
+                    lines.push_back(convert(segment.first()));
+                    lines.push_back(convert(segment.second()));
+                }
+            }
+
+            std::vector<trimesh::vec3> lines;
+        } nfpDebugger;
+
+        auto subnfp_r = nfp::nfpConvexOnly<PolygonImpl, double, NfpDebugger>(fixedp, orbp, &nfpDebugger);
+        placers::correctNfpPosition(subnfp_r, fixedItem, orbItem);
+
+        point = convert(subnfp_r.second);
+        convertPolygon(subnfp_r.first, poly);
+        lines = nfpDebugger.lines;
+    }
 }

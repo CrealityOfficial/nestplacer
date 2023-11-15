@@ -41,4 +41,15 @@ namespace nestplacer
 		convertRaw(poly.Contour, dPoly.outline);
 		convertRaw(poly.Holes, dPoly.holes);
 	}
+
+	libnest2d::_Box<libnest2d::PointImpl> convert(const trimesh::box& b)
+	{
+		Clipper3r::IntPoint minPoint(convert(b.min));
+		Clipper3r::IntPoint maxPoint(convert(b.max));
+		Clipper3r::IntPoint rect = maxPoint - minPoint;
+
+		libnest2d::_Box<libnest2d::PointImpl> binBox 
+			= libnest2d::_Box<libnest2d::PointImpl>(rect.X, rect.Y, convert(b.center()));
+		return binBox;
+	}
 }

@@ -39,6 +39,24 @@ namespace nestplacer
 
 	NESTPLACER_API void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param,
 		ConcaveNestDebugger* debugger = nullptr);
+
+	class NestPlacerImpl;
+	class NESTPLACER_API NestPlacer
+	{
+	public:
+		NestPlacer();
+		~NestPlacer();
+
+		void setInput(const ConcaveItems& models);
+		void setDebugger(ConcaveNestDebugger* _debugger);
+
+		void layout(const NestConcaveParam& param);
+
+		void testNFP(trimesh::vec3& point, DebugPolygon& poly, std::vector<trimesh::vec3>& lines);
+	protected:
+		NestPlacerImpl* impl;
+		ConcaveNestDebugger* debugger;
+	};
 }
 
 

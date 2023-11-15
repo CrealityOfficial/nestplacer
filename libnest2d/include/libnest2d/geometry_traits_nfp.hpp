@@ -180,6 +180,12 @@ inline TPoint<RawShape> referenceVertex(const RawShape& sh)
     return rightmostUpVertex(sh);
 }
 
+template<class RawShape> class NfpDebugger {
+public:
+    void onEdges(const std::vector<_Segment<TPoint<RawShape>>>& edges) {
+
+    }
+};
 /**
  * The "trivial" Cuninghame-Green implementation of NFP for convex polygons.
  *
@@ -198,9 +204,10 @@ inline TPoint<RawShape> referenceVertex(const RawShape& sh)
  * convex as well in this case.
  *
  */
-template<class RawShape, class Ratio = double>
+template<class RawShape, class Ratio = double, class Debugger = NfpDebugger<RawShape>>
 inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
-                                         const RawShape& other)
+                                         const RawShape& other, 
+                                         Debugger* debugger = nullptr)
 {
     using Vertex = TPoint<RawShape>; using Edge = _Segment<Vertex>;
     namespace sl = shapelike;
@@ -291,6 +298,9 @@ inline NfpResult<RawShape> nfpConvexOnly(const RawShape& sh,
         // If in different quadrants, compare the quadrant indices only.
         return q[0] > q[1];
     });
+
+    if (debugger)
+        debugger->onEdges(edgelist);
 
     __nfp::buildPolygon(edgelist, rsh, top_nfp);
 
