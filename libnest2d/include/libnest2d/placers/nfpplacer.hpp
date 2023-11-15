@@ -177,6 +177,11 @@ struct NfpPConfig {
                        const ItemGroup&              // remaining items
                        )> before_packing;
 
+    /*
+    * Debug function
+    */
+    std::function<void(const nfp::Shapes<RawShape>&)> debug_nfps;
+
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
 };
@@ -1009,6 +1014,11 @@ private:
                     }
                 }
  
+//debug
+                if (config_.debug_nfps)
+                    config_.debug_nfps(nfps);
+//...
+
                 auto startpos = item.translation();
 
                 std::vector<Edges> ecache;

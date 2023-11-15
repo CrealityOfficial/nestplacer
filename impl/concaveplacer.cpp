@@ -1,15 +1,11 @@
 #include "nestplacer/concaveplacer.h"
 #include "data.h"
+#include "conv.h"
 
 #include <libnest2d/libnest2d.hpp>
 
 namespace nestplacer
 {
-    Clipper3r::IntPoint convert(const trimesh::vec3& point)
-    {
-        return Clipper3r::IntPoint(MM2INT(point.x), MM2INT(point.y));
-    }
-
     void convert(const ConcaveItem& _items, Clipper3r::Path& path)
     {
         size_t size = _items.size();
@@ -34,7 +30,26 @@ namespace nestplacer
         //};
     }
 
-	void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param)
+    void initDebugger(NfpFisrtFitConfig& config, ConcaveNestDebugger* debugger)
+    {
+        if (!debugger)
+            return;
+
+        using namespace libnest2d;
+        NfpPlacer::Config& nfpConfig = config.placer_config;
+        nfpConfig.debug_nfps = [debugger](const nfp::Shapes<PolygonImpl>& nfps) {
+            size_t size = nfps.size();
+            if (size > 0)
+            {
+                std::vector<DebugPolygon> oNfps(size);
+                for (size_t i = 0; i < size; ++i)
+                    convertPolygon(nfps.at(i), oNfps.at(i));
+                debugger->onNPFs(oNfps);
+            }
+        };
+    }
+
+	void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param, ConcaveNestDebugger* debugger)
 	{
         size_t size = models.size();
         if (size == 0)
@@ -55,14 +70,14 @@ namespace nestplacer
 
         NfpFisrtFitConfig config;
         initConfig(config, param);
+        initDebugger(config, debugger);
+
         Clipper3r::cInt distance = MM2INT(param.distance);
 
         std::vector<libnest2d::Item> inputs;
         for (int i = 0; i < size; i++)
         {
             Clipper3r::Path path;
-            if (!Clipper3r::Orientation(path))
-                Clipper3r::ReversePath(path);
             convert(models.at(i), path);
             inputs.emplace_back(libnest2d::Item(std::move(path)));
             inputs.back().convexCal(false);

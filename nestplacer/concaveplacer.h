@@ -20,7 +20,25 @@ namespace nestplacer
 		ccglobal::Tracer* tracer = nullptr;
 	};
 
-	NESTPLACER_API void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param);
+	typedef std::vector<trimesh::vec3> DebugContour;
+	typedef std::vector<DebugContour> DebugContours;
+
+	struct DebugPolygon
+	{
+		DebugContour outline;
+		DebugContours holes;
+	};
+
+	class ConcaveNestDebugger
+	{
+	public:
+		virtual ~ConcaveNestDebugger() {}
+
+		virtual void onNPFs(const std::vector<DebugPolygon>& nfps) = 0;
+	};
+
+	NESTPLACER_API void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param,
+		ConcaveNestDebugger* debugger = nullptr);
 }
 
 
