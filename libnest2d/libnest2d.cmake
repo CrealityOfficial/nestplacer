@@ -39,11 +39,13 @@ list(APPEND SRCS
 	
 	${CMAKE_CURRENT_LIST_DIR}/include/polygonLib/polygonLib.h
 	${CMAKE_CURRENT_LIST_DIR}/include/polygonLib/delaunator.h
+	${CMAKE_CURRENT_LIST_DIR}/include/polygonLib/svghelper.h
 	
 	${CMAKE_CURRENT_LIST_DIR}/src/polygonLib.cpp
 	${CMAKE_CURRENT_LIST_DIR}/src/svg.cpp
 	${CMAKE_CURRENT_LIST_DIR}/src/libnfporb.cpp
 	${CMAKE_CURRENT_LIST_DIR}/src/geometry.cpp
+	${CMAKE_CURRENT_LIST_DIR}/src/svghelper.cpp
 	
 	${CMAKE_CURRENT_LIST_DIR}/tools/benchmark.h
 	${CMAKE_CURRENT_LIST_DIR}/tools/svgtools.hpp

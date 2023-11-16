@@ -16,6 +16,8 @@ namespace nestplacer
 		float eDistance = 0.0f;
 		PlaceType packType = PlaceType::CONCAVE;
 		float rotationAngle = 20.0f;
+
+		std::string rootDir;
 		NestCallback callback = {};
 		ccglobal::Tracer* tracer = nullptr;
 	};

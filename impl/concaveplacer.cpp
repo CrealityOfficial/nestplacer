@@ -26,6 +26,8 @@ namespace nestplacer
         for (int i = 0; i < step; i++)
             config.placer_config.rotations.push_back(
                 libnest2d::Radians(libnest2d::Degrees((double)i * param.rotationAngle)));
+
+        config.placer_config.root = param.rootDir;
     }
 
     void initControl(libnest2d::NestControl& control, size_t size, ccglobal::Tracer* tracer)
