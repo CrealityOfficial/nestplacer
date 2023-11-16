@@ -180,7 +180,9 @@ struct NfpPConfig {
     /*
     * Debug function
     */
-    std::function<void(const nfp::Shapes<RawShape>&)> debug_nfps;
+    std::function<void(const nfp::Shapes<RawShape>& items,
+        const nfp::Shapes<RawShape>& merged_piles,
+        const nfp::Shapes<RawShape>& nfps)> debug_items;
 
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
@@ -1014,11 +1016,6 @@ private:
                     }
                 }
  
-//debug
-                if (config_.debug_nfps)
-                    config_.debug_nfps(nfps);
-//...
-
                 auto startpos = item.translation();
 
                 std::vector<Edges> ecache;
@@ -1256,6 +1253,10 @@ private:
                 using OptResult = opt::Result<double>;
                 using OptResults = std::vector<OptResult>;
 
+                if (config_.debug_items)
+                {
+                    config_.debug_items(pile, merged_pile, nfps);
+                }
                 // Local optimization with the four polygon corners as
                 // starting points
                 for(unsigned ch = 0; ch < ecache.size(); ch++) {

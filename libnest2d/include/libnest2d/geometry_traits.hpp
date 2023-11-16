@@ -136,7 +136,7 @@ template<class S>
 struct OrientationType {
 
     // Default Polygon orientation that the library expects
-    static const Orientation Value = Orientation::COUNTER_CLOCKWISE;
+    static const Orientation Value = Orientation::CLOCKWISE;
 };
 
 template<class T> inline /*constexpr*/ bool is_clockwise() { 

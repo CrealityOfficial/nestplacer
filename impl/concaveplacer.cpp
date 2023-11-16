@@ -1,8 +1,7 @@
 #include "nestplacer/concaveplacer.h"
 #include "data.h"
 #include "conv.h"
-
-#include <libnest2d/libnest2d.hpp>
+#include "debug.h"
 
 namespace nestplacer
 {
@@ -16,8 +15,6 @@ namespace nestplacer
                 path.at(i) = convert(_items.at(i));
         }
     }
-
-    typedef libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> NfpFisrtFitConfig;
 
     void initConfig(NfpFisrtFitConfig& config, const NestConcaveParam& param)
     {
@@ -42,25 +39,6 @@ namespace nestplacer
             if (tracer)
                 return tracer->interrupt();
             return false;
-        };
-    }
-
-    void initDebugger(NfpFisrtFitConfig& config, ConcaveNestDebugger* debugger)
-    {
-        if (!debugger)
-            return;
-
-        using namespace libnest2d;
-        NfpPlacer::Config& nfpConfig = config.placer_config;
-        nfpConfig.debug_nfps = [debugger](const nfp::Shapes<PolygonImpl>& nfps) {
-            size_t size = nfps.size();
-            if (size > 0)
-            {
-                std::vector<DebugPolygon> oNfps(size);
-                for (size_t i = 0; i < size; ++i)
-                    convertPolygon(nfps.at(i), oNfps.at(i));
-                debugger->onNPFs(oNfps);
-            }
         };
     }
 
@@ -126,6 +104,11 @@ namespace nestplacer
             {
                 Clipper3r::Path path;
                 convert(models.at(i), path);
+
+                double a = Clipper3r::Area(path);
+                if (Clipper3r::Orientation(path))
+                    Clipper3r::ReversePath(path);
+
                 inputs.emplace_back(libnest2d::Item(std::move(path)));
                 inputs.back().convexCal(false);
             }
@@ -157,8 +140,7 @@ namespace nestplacer
     };
 
     NestPlacer::NestPlacer()
-        : debugger(nullptr)
-        , impl(new NestPlacerImpl())
+        : impl(new NestPlacerImpl())
     {
     }
 
@@ -172,19 +154,14 @@ namespace nestplacer
         impl->setInputs(models);
     }
 
-    void NestPlacer::setDebugger(ConcaveNestDebugger* _debugger)
-    {
-        debugger = debugger;
-    }
-
-    void NestPlacer::layout(const NestConcaveParam& param)
+    void NestPlacer::layout(const NestConcaveParam& param, ConcaveNestDebugger* _debugger)
     {
         libnest2d::NestControl ctl;
         initControl(ctl, impl->size, param.tracer);
 
         NfpFisrtFitConfig config;
         initConfig(config, param);
-        initDebugger(config, debugger);
+        initDebugger(config, _debugger);
 
         Clipper3r::cInt distance = MM2INT(param.distance);
         libnest2d::Box binBox = convert(param.box);

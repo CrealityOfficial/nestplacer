@@ -15,6 +15,8 @@ namespace nestplacer
 	void convertRaw(const Clipper3r::Path& path, std::vector<trimesh::vec3>& lines, float z = 0.0f);
 
 	void convertPolygon(const libnest2d::PolygonImpl& poly, DebugPolygon& dPoly);
+	void convertPolygons(const std::vector<libnest2d::PolygonImpl>& polys,
+		std::vector<DebugPolygon>& dPolys);
 
 	libnest2d::_Box<libnest2d::PointImpl> convert(const trimesh::box& b);
 }

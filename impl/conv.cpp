@@ -42,6 +42,18 @@ namespace nestplacer
 		convertRaw(poly.Holes, dPoly.holes);
 	}
 
+	void convertPolygons(const std::vector<libnest2d::PolygonImpl>& polys,
+		std::vector<DebugPolygon>& dPolys)
+	{
+		size_t size = polys.size();
+		if (size > 0)
+		{
+			dPolys.resize(size);
+			for (size_t i = 0; i < size; ++i)
+				convertPolygon(polys.at(i), dPolys.at(i));
+		}
+	}
+
 	libnest2d::_Box<libnest2d::PointImpl> convert(const trimesh::box& b)
 	{
 		Clipper3r::IntPoint minPoint(convert(b.min));

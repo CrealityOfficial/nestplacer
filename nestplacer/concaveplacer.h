@@ -14,12 +14,13 @@ namespace nestplacer
 		trimesh::box3 box;
 		float distance = 0.0f;
 		float eDistance = 0.0f;
-		PlaceType packType;
+		PlaceType packType = PlaceType::CONCAVE;
 		float rotationAngle = 20.0f;
 		NestCallback callback = {};
 		ccglobal::Tracer* tracer = nullptr;
 	};
 
+	//debug
 	typedef std::vector<trimesh::vec3> DebugContour;
 	typedef std::vector<DebugContour> DebugContours;
 
@@ -29,13 +30,18 @@ namespace nestplacer
 		DebugContours holes;
 	};
 
-	class ConcaveNestDebugger
+	struct RotateDebugger
 	{
-	public:
-		virtual ~ConcaveNestDebugger() {}
-
-		virtual void onNPFs(const std::vector<DebugPolygon>& nfps) = 0;
+		std::vector<DebugPolygon> items;
+		std::vector<DebugPolygon> merged_piles;
+		std::vector<DebugPolygon> nfps;
 	};
+
+	struct ConcaveNestDebugger
+	{
+		std::vector<RotateDebugger> rotates;
+	};
+	//debug
 
 	NESTPLACER_API void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param,
 		ConcaveNestDebugger* debugger = nullptr);
@@ -48,14 +54,11 @@ namespace nestplacer
 		~NestPlacer();
 
 		void setInput(const ConcaveItems& models);
-		void setDebugger(ConcaveNestDebugger* _debugger);
-
-		void layout(const NestConcaveParam& param);
+		void layout(const NestConcaveParam& param, ConcaveNestDebugger* _debugger);
 
 		void testNFP(trimesh::vec3& point, DebugPolygon& poly, std::vector<trimesh::vec3>& lines);
 	protected:
 		NestPlacerImpl* impl;
-		ConcaveNestDebugger* debugger;
 	};
 }
 
