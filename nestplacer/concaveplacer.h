@@ -35,6 +35,7 @@ namespace nestplacer
 		std::vector<DebugPolygon> items;
 		std::vector<DebugPolygon> merged_piles;
 		std::vector<DebugPolygon> nfps;
+		std::vector<DebugPolygon> chull;
 	};
 
 	struct ConcaveNestDebugger

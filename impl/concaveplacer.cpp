@@ -21,10 +21,11 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
-        //config.placer_config.object_function = [](const libnest2d::Item& item)  //优化方向
-        //{
-        //    return 3;
-        //};
+        int step = (int)(180.0f / param.rotationAngle);
+        config.placer_config.rotations.clear();
+        for (int i = 0; i < step; i++)
+            config.placer_config.rotations.push_back(
+                libnest2d::Radians(libnest2d::Degrees((double)i * param.rotationAngle)));
     }
 
     void initControl(libnest2d::NestControl& control, size_t size, ccglobal::Tracer* tracer)

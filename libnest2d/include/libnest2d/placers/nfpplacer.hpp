@@ -182,7 +182,8 @@ struct NfpPConfig {
     */
     std::function<void(const nfp::Shapes<RawShape>& items,
         const nfp::Shapes<RawShape>& merged_piles,
-        const nfp::Shapes<RawShape>& nfps)> debug_items;
+        const nfp::Shapes<RawShape>& nfps,
+        const RawShape& chull)> debug_items;
 
     NfpPConfig(): rotations({0.0, Pi/2.0, Pi, 3*Pi/2}),
         alignment(Alignment::CENTER), starting_point(Alignment::CENTER) {}
@@ -1219,7 +1220,7 @@ private:
                             ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
                 };
 
-                auto boundaryCheck = [bNest2d, alignment, &merged_pile, &getNfpPoint,
+                auto boundaryCheck = [this, &pile, &nfps, bNest2d, alignment, &merged_pile, &getNfpPoint,
                         &item, &bin, &iv, &startpos] (const Optimum& o)
                 {
                     auto v = getNfpPoint(o);
@@ -1229,6 +1230,12 @@ private:
 
                     merged_pile.emplace_back(item.transformedShape());
                     auto chull = sl::convexHull(merged_pile);
+
+                    if (config_.debug_items)
+                    {
+                        config_.debug_items(pile, merged_pile, nfps, chull);
+                    }
+
                     merged_pile.pop_back();
 
                     double miss = 0;
@@ -1253,10 +1260,6 @@ private:
                 using OptResult = opt::Result<double>;
                 using OptResults = std::vector<OptResult>;
 
-                if (config_.debug_items)
-                {
-                    config_.debug_items(pile, merged_pile, nfps);
-                }
                 // Local optimization with the four polygon corners as
                 // starting points
                 for(unsigned ch = 0; ch < ecache.size(); ch++) {
