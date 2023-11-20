@@ -56,7 +56,11 @@ namespace nestplacer
 
         NfpFisrtFitConfig config;
         initConfig(config, param);
-        initDebugger(config, debugger);
+
+        if (debugger) {
+            config.placer_config.parallel = false;
+            initDebugger(config, debugger);
+        }
 
         Clipper3r::cInt distance = MM2INT(param.distance);
 
@@ -65,6 +69,8 @@ namespace nestplacer
         {
             Clipper3r::Path path;
             convert(models.at(i), path);
+            if (Clipper3r::Orientation(path))
+                Clipper3r::ReversePath(path);
             inputs.emplace_back(libnest2d::Item(std::move(path)));
             inputs.back().convexCal(false);
         }
@@ -164,7 +170,11 @@ namespace nestplacer
 
         NfpFisrtFitConfig config;
         initConfig(config, param);
-        initDebugger(config, _debugger);
+
+        if (_debugger)             {
+            config.placer_config.parallel = false;
+            initDebugger(config, _debugger);
+        }
 
         Clipper3r::cInt distance = MM2INT(param.distance);
         libnest2d::Box binBox = convert(param.box);

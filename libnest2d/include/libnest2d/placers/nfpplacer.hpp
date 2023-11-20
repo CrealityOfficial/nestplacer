@@ -917,542 +917,59 @@ private:
             Item& item,
             const Range& remaining = Range()) {
 
-        //PackResult ret;
-
-        //int type = 0;
-        //bool bNest2d = false;
-        //bool can_pack = false;
-        //bool pack_out = false;
-
-        //double best_overfit = std::numeric_limits<double>::max();
-        //auto& bin = bin_;
-        //auto binbb = sl::boundingBox(bin);
-
-        //ItemGroup remlist;
-        //if(remaining.valid) {
-        //    remlist.insert(remlist.end(), remaining.from, remaining.to);
-        //}
-        //if (config_.object_function)
-        //{
-        //    std::function<double(const Item&)> geTypeFunction;
-        //    geTypeFunction = config_.object_function;
-        //    type = geTypeFunction(item);
-        //    if (type > 2 && type < 12)
-        //    {
-        //        bNest2d = true;
-        //    }
-        //}
-
-        //if (item.translation().X != 0 || item.translation().Y != 0)
-        //{
-        //    item.transformedShape();
-        //    ret = PackResult(item);
-        //    return ret;
-        //}
-
-        //auto alignment = config_.alignment;
-        //bool pair_pack = ((remlist.size() + items_.size()) < 2);
-        //auto initial_tr = item.translation();
-        //auto initial_rot = item.rotation();
-        //if(items_.empty()) {
-        //    for (auto rot : config_.rotations) {
-        //        setInitialPosition(item);
-        //        item.rotation(initial_rot + rot);
-        //        best_overfit = overfit(item.transformedShape(), bin);
-        //        can_pack = best_overfit <= 0;
-        //        if (can_pack) break;
-        //    }
-        //} else {
-        //    double global_score = std::numeric_limits<double>::max();
-
-        //    Vertex final_tr = {0, 0};
-        //    Radians final_rot = initial_rot;
-        //    Shapes nfps;
-
-        //    for(auto rot : config_.rotations) {
-
-        //        item.translation(initial_tr);
-        //        item.rotation(initial_rot + rot);
-        //        item.boundingBox(); // fill the bb cache
-
-        //        // place the new item outside of the print bed to make sure
-        //        // it is disjunct from the current merged pile
-        //        placeOutsideOfBin(item);
-
-        //        auto addPoint = [](Clipper3r::Path& item, int max_dis)
-        //        {
-        //            int ptSize = item.size();
-        //            if (ptSize == 0) return;
-        //            Clipper3r::Path itemDensed;
-        //            itemDensed.push_back(item[0]);
-        //            for (int i = 1; i < ptSize + 1; i++)
-        //            {
-        //                int curIdx = i < ptSize ? i : i - ptSize;
-        //                Clipper3r::IntPoint ptAdd = item[curIdx] - item[i - 1];
-        //                int len = sqrt(ptAdd.X * ptAdd.X + ptAdd.Y * ptAdd.Y);
-        //                if (len > max_dis)
-        //                {
-        //                    int addNum = len / max_dis;
-        //                    for (int j = 1; j < addNum; j++)
-        //                    {
-        //                        float theta = j * max_dis / (float)len;
-        //                        itemDensed.push_back(item[i - 1] + Clipper3r::IntPoint(theta * ptAdd.X, theta * ptAdd.Y));
-        //                    }
-        //                }
-        //                itemDensed.push_back(item[curIdx]);
-        //            }
-        //            item.swap(itemDensed);
-        //        };
-
-        //        Vertex iv = { 0, 0 };
-        //        if (type == 6 || type == 11)
-        //            nfps = calcnfp_CONCAVE(item, iv);                
-        //        else
-        //        {
-        //            nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
-        //            iv = item.referenceVertex();
-        //            for (auto& nfp : nfps) {
-        //                Clipper3r::Path path = nfp.Contour;
-        //                addPoint(path, 1000);
-        //                Item fixedp_convex(path);
-        //                nfp = fixedp_convex;
-        //            }
-        //        }
- 
-        //        auto startpos = item.translation();
-
-        //        std::vector<Edges> ecache;
-        //        ecache.reserve(nfps.size());
-
-        //        for(auto& nfp : nfps ) {
-        //            ecache.emplace_back(nfp);
-        //            ecache.back().accuracy(config_.accuracy);
-        //        }
-
-        //        Shapes pile;
-        //        pile.reserve(items_.size()+1);
-
-        //         double pile_area = 0;
-        //        for(Item& mitem : items_) {
-        //            pile.emplace_back(mitem.transformedShape());
-        //            pile_area += mitem.area();
-        //        }
-
-        //        auto merged_pile = nfp::merge(pile);
-        //        double norm = norm_;
-        //        auto pbb = sl::boundingBox(merged_pile);
-
-
-        //        // This is the kernel part of the object function that is
-        //        // customizable by the library client
-        //        std::function<double(const Item&)> _objfunc;
-        //        if (config_.object_function)  ///_objfunc = config_.object_function;
-        //        {
-        //            // Inside check has to be strict if no alignment was enabled
-        //            std::function<double(const Box&)> ins_check;
-        //            if (alignment == Config::Alignment::DONT_ALIGN)
-        //                ins_check = [&binbb, norm](const Box& fullbb) {
-        //                double ret = 0;
-        //                if (!sl::isInside(fullbb, binbb))
-        //                    ret += norm;
-        //                return ret;
-        //            };
-        //            else
-        //                ins_check = [&bin](const Box& fullbb) {
-        //                double miss = overfit(fullbb, bin);
-        //                miss = miss > 0 ? miss : 0;
-        //                return std::pow(miss, 2);
-        //            };
-
-        //            if (bNest2d)
-        //            {
-        //                _objfunc = [binbb, pbb, ins_check, type, pile_area, pair_pack, &alignment](const Item& item)
-        //                {
-        //                    auto ibb = item.boundingBox();
-        //                    auto fullbb = sl::boundingBox(pbb, ibb);
-        //                    double score = 0;
-        //                    double binH = binbb.height();
-        //                    double binW = binbb.width();
-        //                    auto pbb_area = pbb.area();
-        //                    auto fullbb_area = fullbb.area();
-        //                    double norm_pdd = pbb.height() + pbb.width();
-
-        //                    switch (type)
-        //                    {
-        //                    case 3:
-        //                    case 4: 
-        //                    case 11: {
-        //                        score = pl::distance(ibb.center(),
-        //                            binbb.center()) / norm_pdd;
-        //                        double fullbbH = fullbb.height();
-        //                        double fullbbW = fullbb.width();
-        //                        double fullbbH_cal = fullbbW / binW * binH;
-        //                        double fullbbW_cal = fullbbH / binH * binW;
-        //                        fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-        //                        fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-        //                        double totalArea = fullbbH * fullbbW;
-        //                        double area_score = 1 - pile_area / totalArea;//最小面积加权
-        //                        if (pbb_area == fullbb_area)
-        //                            area_score = 0;
-        //                        score = score * 0.5 + area_score * 0.5;
-        //                    }break;
-        //                    case 5: {
-        //                        score = (binH - ibb.center().Y) / binH;
-        //                        double score_mid = fabs(ibb.center().X - binW / 2) / binW;
-        //                        score = score * 0.5 + score_mid * 0.5;
-        //                    }break;
-        //                    case 6: {
-        //                        if (pair_pack)
-        //                        {
-        //                            score = pl::distance(ibb.center(),
-        //                                binbb.center()) / norm_pdd;
-        //                            double fullbbH = fullbb.height();
-        //                            double fullbbW = fullbb.width();
-        //                            double fullbbH_cal = fullbbW / binW * binH;
-        //                            double fullbbW_cal = fullbbH / binH * binW;
-        //                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-        //                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-        //                            double totalArea = fullbbH * fullbbW;
-        //                            double area_score = 1 - pile_area / totalArea;//最小面积加权
-        //                            if (pbb_area == fullbb_area)
-        //                                area_score = 0;
-        //                            score = score * 0.2 + area_score * 0.8;
-        //                        }
-        //                        else
-        //                        {
-        //                            score = ibb.center().Y / binH;
-        //                            double score_mid = fabs(ibb.center().X - pbb.center().X) / binW;
-        //                            score = score * 0.45 + score_mid * 0.55;
-        //                            alignment = Config::Alignment::CENTER;
-        //                        }
-        //                    }break;
-        //                    case 7: {
-        //                        score = fabs(binH - ibb.center().Y) / binH;
-        //                        double score_left = ibb.center().X / binW;
-        //                        score = score * 0.9 + score_left * 0.1;
-        //                    }break;
-        //                    case 8: {
-        //                        score = ibb.center().Y / binH;
-        //                        double score_left = ibb.center().X / binW;
-        //                        score = score * 0.9 + score_left * 0.1;
-        //                    }break;
-        //                    case 9: {
-        //                        score = ibb.center().X / binW;
-        //                        double score_top = fabs(binH - ibb.center().Y) / binH;
-        //                        score = score * 0.9 + score_top * 0.1;
-        //                    }break;
-        //                    case 10: {
-        //                        score = fabs(binW - ibb.center().X) / binW;
-        //                        double score_top = fabs(binH - ibb.center().Y) / binH;
-        //                        score = score * 0.9 + score_top * 0.1;
-        //                    }break;
-
-        //                    }
-        //                    score += ins_check(fullbb);
-
-        //                    return score;
-        //                };
-        //            }
-        //            else
-        //            {
-        //                _objfunc = config_.object_function;
-        //            }
-        //        }
-        //        else {
-
-        //            // Inside check has to be strict if no alignment was enabled
-        //            std::function<double(const Box&)> ins_check;
-        //            if(config_.alignment == Config::Alignment::DONT_ALIGN)
-        //                ins_check = [&binbb, norm](const Box& fullbb) {
-        //                    double ret = 0;
-        //                    if(!sl::isInside(fullbb, binbb))
-        //                        ret += norm;
-        //                    return ret;
-        //                };
-        //            else
-        //                ins_check = [&bin](const Box& fullbb) {
-        //                    double miss = overfit(fullbb, bin);
-        //                    miss = miss > 0? miss : 0;
-        //                    return std::pow(miss, 2);
-        //                };
-
-        //            _objfunc = [norm, binbb, pbb, ins_check, pile_area, remlist](const Item& item)
-        //            {
-        //                auto ibb = item.boundingBox();
-        //                auto fullbb = sl::boundingBox(pbb, ibb);
-        //                double binH = binbb.height();
-        //                double binW = binbb.width();
-        //                double norm_pdd = pbb.height() + pbb.width();
-        //                double score = 0.f;
-        //                score = pl::distance(ibb.center(), binbb.center())/ norm_pdd;
-
-        //                if (!remlist.empty())
-        //                {
-        //                    double fullbbH = fullbb.height();
-        //                    double fullbbW = fullbb.width();
-        //                    double fullbbH_cal = fullbbW / binW * binH;
-        //                    double fullbbW_cal = fullbbH / binH * binW;
-        //                    fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
-        //                    fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
-        //                    double totalArea = fullbbH * fullbbW;
-        //                    double area_score = 1 - pile_area / totalArea;//最小面积加权
-        //                    score = score * 0.5 + area_score * 0.5;
-        //                }
-
-        //                score += ins_check(fullbb);
-
-        //                return score;
-        //            };
-
-        //        }
-
-        //        // Our object function for placement
-        //        auto rawobjfunc = [_objfunc, iv, startpos]
-        //                (Vertex v, Item& itm)
-        //        {
-        //            auto d = v - iv;
-        //            d += startpos;
-        //            itm.translation(d);
-        //            return _objfunc(itm);
-        //        };
-
-        //        auto getNfpPoint = [&ecache](const Optimum& opt)
-        //        {
-        //            return opt.hidx < 0? ecache[opt.nfpidx].coords(opt.relpos) :
-        //                    ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
-        //        };
-
-        //        auto boundaryCheck = [this, &pile, &nfps, bNest2d, alignment, &merged_pile, &getNfpPoint,
-        //                &item, &bin, &iv, &startpos] (const Optimum& o)
-        //        {
-        //            auto v = getNfpPoint(o);
-        //            auto d = v - iv;
-        //            d += startpos;
-        //            item.translation(d);
-
-        //            merged_pile.emplace_back(item.transformedShape());
-        //            auto chull = sl::convexHull(merged_pile);
-
-        //            if (config_.debug_items)
-        //            {
-        //                config_.debug_items(pile, merged_pile, nfps, chull);
-        //            }
-
-        //            merged_pile.pop_back();
-
-        //            double miss = 0;
-        //            if (alignment == Config::Alignment::DONT_ALIGN)
-        //            {
-        //                if(!bNest2d) chull = sl::convexHull(item.transformedShape());
-        //                miss = sl::isInside(chull, bin) ? -1.0 : 1.0;
-        //            }
-        //            else miss = overfit(chull, bin);
-
-        //            return miss;
-        //        };
-
-        //        Optimum optimum(0, 0);
-        //        double best_score = std::numeric_limits<double>::max();
-        //        std::launch policy = std::launch::deferred;
-        //        if(config_.parallel) policy |= std::launch::async;
-
-        //        if(config_.before_packing)
-        //            config_.before_packing(merged_pile, items_, remlist);
-
-        //        using OptResult = opt::Result<double>;
-        //        using OptResults = std::vector<OptResult>;
-
-        //        // Local optimization with the four polygon corners as
-        //        // starting points
-        //        for(unsigned ch = 0; ch < ecache.size(); ch++) {
-        //            auto& cache = ecache[ch];
-
-        //            OptResults results(cache.corners().size());
-
-        //            auto& rofn = rawobjfunc;
-        //            auto& nfpoint = getNfpPoint;
-        //            float accuracy = config_.accuracy;
-
-        //            __parallel::enumerate(
-        //                        cache.corners().begin(),
-        //                        cache.corners().end(),
-        //                        [&results, &item, &rofn, &nfpoint, ch, accuracy]
-        //                        (double pos, size_t n)
-        //            {
-        //                Optimizer solver(accuracy);
-
-        //                Item itemcpy = item;
-        //                auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy]
-        //                        (double relpos)
-        //                {
-        //                    Optimum op(relpos, ch);
-        //                    return rofn(nfpoint(op), itemcpy);
-        //                };
-
-        //                try {
-        //                    results[n] = solver.optimize_min(contour_ofn,
-        //                                    opt::initvals<double>(pos),
-        //                                    opt::bound<double>(0, 1.0)
-        //                                    );
-        //                } catch(std::exception& e) {
-        //                    derr() << "ERROR: " << e.what() << "\n";
-        //                }
-        //            }, policy);
-
-        //            auto resultcomp =
-        //                    []( const OptResult& r1, const OptResult& r2 ) {
-        //                return r1.score < r2.score;
-        //            };
-
-        //            auto mr = *std::min_element(results.begin(), results.end(),
-        //                                        resultcomp);
-
-        //            if(mr.score < best_score) {
-        //                Optimum o(std::get<0>(mr.optimum), ch, -1);
-        //                double miss = boundaryCheck(o);
-        //                if(miss <= 0) {
-        //                    best_score = mr.score;
-        //                    optimum = o;
-        //                } else {
-        //                    best_overfit = std::min(miss, best_overfit);
-        //                }
-        //            }
-
-        //            for(unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
-        //                results.clear();
-        //                results.resize(cache.corners(hidx).size());
-
-        //                // TODO : use parallel for
-        //                __parallel::enumerate(cache.corners(hidx).begin(),
-        //                              cache.corners(hidx).end(),
-        //                              [&results, &item, &nfpoint,
-        //                               &rofn, ch, hidx, accuracy]
-        //                              (double pos, size_t n)
-        //                {
-        //                    Optimizer solver(accuracy);
-
-        //                    Item itmcpy = item;
-        //                    auto hole_ofn =
-        //                            [&rofn, &nfpoint, ch, hidx, &itmcpy]
-        //                            (double pos)
-        //                    {
-        //                        Optimum opt(pos, ch, hidx);
-        //                        return rofn(nfpoint(opt), itmcpy);
-        //                    };
-
-        //                    try {
-        //                        results[n] = solver.optimize_min(hole_ofn,
-        //                                        opt::initvals<double>(pos),
-        //                                        opt::bound<double>(0, 1.0)
-        //                                        );
-
-        //                    } catch(std::exception& e) {
-        //                        derr() << "ERROR: " << e.what() << "\n";
-        //                    }
-        //                }, policy);
-
-        //                auto hmr = *std::min_element(results.begin(),
-        //                                            results.end(),
-        //                                            resultcomp);
-
-        //                if(hmr.score < best_score) {
-        //                    Optimum o(std::get<0>(hmr.optimum),
-        //                              ch, hidx);
-        //                    double miss = boundaryCheck(o);
-        //                    if(miss <= 0.0) {
-        //                        best_score = hmr.score;
-        //                        optimum = o;
-        //                    } else {
-        //                        best_overfit = std::min(miss, best_overfit);
-        //                    }
-        //                }
-        //            }
-        //        }
-
-        //        if( best_score < global_score && fabs(best_score - global_score) > 0.0001) {
-        //            auto d = getNfpPoint(optimum) - iv;
-        //            d += startpos;
-        //            final_tr = d;
-        //            final_rot = initial_rot + rot;
-        //            can_pack = true;
-        //            global_score = best_score;
-        //        }
-
-        //        if (rot.toDegrees() == 0.f && can_pack && (!bNest2d || type == 4 || type == 5))
-        //            break;
-        //    }
-
-        //    item.translation(final_tr);
-        //    item.rotation(final_rot);
-        //}
-
-        //if (bNest2d && can_pack)
-        //{
-        //    //判断当前模型排进去后是否会出界，若出界，将其转至原点位置
-        //    Vertex origin_tr = { 0, 0 };
-        //    auto trans_item = item.transformedShape_s();
-        //    Clipper3r::Clipper a;
-        //    a.AddPath(trans_item.Contour, Clipper3r::ptSubject, true);
-        //    for (int i = 0; i < items_.size(); i++)
-        //    {
-        //        Item item_tmp = items_[i];
-        //        auto trans_item_tmp = item_tmp.transformedShape_s();
-        //        a.AddPath(trans_item_tmp.Contour, Clipper3r::ptSubject, true);
-        //    }
-        //    Clipper3r::IntRect ibb_dst = a.GetBounds();
-        //    int ibbH = binbb.height() - 2 * item.inflation() + 2;
-        //    int ibbW = binbb.width() - 2 * item.inflation() + 2;
-
-        //    if (!(ibb_dst.bottom - ibb_dst.top <= ibbH &&
-        //        ibb_dst.right - ibb_dst.left <= ibbW))
-        //    {
-        //        pack_out = true;
-        //        item.translation(origin_tr);
-        //        item.rotation(-0.5*Pi);//超界标志
-        //    }
-        //}
-
-        //if(can_pack) {
-        //    if(pack_out) 
-        //        ret = PackResult(item, best_overfit);
-        //    else 
-        //        ret = PackResult(item);
-        //} else {
-        //    item.translation({});
-        //    item.rotation(-0.5 * Pi);//超界标志
-        //    ret = PackResult(item, best_overfit);
-        //}
-
-
-        //return ret;
-
-
         PackResult ret;
 
+        int type = 0;
+        bool bNest2d = false;
         bool can_pack = false;
+        bool pack_out = false;
+
         double best_overfit = std::numeric_limits<double>::max();
+        auto& bin = bin_;
+        auto binbb = sl::boundingBox(bin);
 
         ItemGroup remlist;
-        if (remaining.valid) {
+        if(remaining.valid) {
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
-
-        if (items_.empty()) {
-            setInitialPosition(item);
-            best_overfit = overfit(item.transformedShape(), bin_);
-            can_pack = best_overfit <= 0;
+        if (config_.object_function)
+        {
+            std::function<double(const Item&)> geTypeFunction;
+            geTypeFunction = config_.object_function;
+            type = geTypeFunction(item);
+            if (type > 2 && type < 12)
+            {
+                bNest2d = true;
+            }
         }
-        else {
 
+        if (item.translation().X != 0 || item.translation().Y != 0)
+        {
+            item.transformedShape();
+            ret = PackResult(item);
+            return ret;
+        }
+
+        auto alignment = config_.alignment;
+        bool pair_pack = ((remlist.size() + items_.size()) < 2);
+        auto initial_tr = item.translation();
+        auto initial_rot = item.rotation();
+        if(items_.empty()) {
+            for (auto rot : config_.rotations) {
+                setInitialPosition(item);
+                item.rotation(initial_rot + rot);
+                best_overfit = overfit(item.transformedShape(), bin);
+                can_pack = best_overfit <= 0;
+                if (can_pack) break;
+            }
+        } else {
             double global_score = std::numeric_limits<double>::max();
 
-            auto initial_tr = item.translation();
-            auto initial_rot = item.rotation();
-            Vertex final_tr = { 0, 0 };
+            Vertex final_tr = {0, 0};
             Radians final_rot = initial_rot;
             Shapes nfps;
 
-            for (auto rot : config_.rotations) {
+            for(auto rot : config_.rotations) {
 
                 item.translation(initial_tr);
                 item.rotation(initial_rot + rot);
@@ -1462,48 +979,83 @@ private:
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
 
-                nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+                auto addPoint = [](Clipper3r::Path& item, int max_dis)
+                {
+                    if (item.empty()) return;
+                    const auto& front = item.front();
+                    const auto& back = item.back();
+                    if (front.X != back.X || front.Y != back.Y) {
+                        item.emplace_back(front);
+                    }
+                    int ptSize = item.size();
+                    if (ptSize < 4) return;
+                    Clipper3r::Path itemDensed;
+                    itemDensed.emplace_back(item[0]);
+                    for (int i = 1; i < ptSize; ++i)
+                    {
+                        Clipper3r::IntPoint ptAdd = item[i] - item[i - 1];
+                        int len = sqrt(ptAdd.X * ptAdd.X + ptAdd.Y * ptAdd.Y);
+                        if (len > max_dis)
+                        {
+                            int addNum = len / max_dis;
+                            for (int j = 1; j < addNum; ++j)
+                            {
+                                float theta = j * max_dis / (float)len;
+                                itemDensed.push_back(item[i - 1] + Clipper3r::IntPoint(theta * ptAdd.X, theta * ptAdd.Y));
+                            }
+                        }
+                        itemDensed.emplace_back(item[i]);
+                    }
+                    item.swap(itemDensed);
+                };
 
-                auto iv = item.referenceVertex();
-
+                Vertex iv = { 0, 0 };
+                if (type == 6 || type == 11)
+                    nfps = calcnfp_CONCAVE(item, iv);                
+                else
+                {
+                    nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+                    iv = item.referenceVertex();
+                    for (auto& nfp : nfps) {
+                        Clipper3r::Path path = nfp.Contour;
+                        addPoint(path, 1000);
+                        Item fixedp_convex(path);
+                        nfp = fixedp_convex;
+                    }
+                }
+ 
                 auto startpos = item.translation();
 
                 std::vector<Edges> ecache;
                 ecache.reserve(nfps.size());
 
-                for (auto& nfp : nfps) {
+                for(auto& nfp : nfps ) {
                     ecache.emplace_back(nfp);
                     ecache.back().accuracy(config_.accuracy);
                 }
 
                 Shapes pile;
-                pile.reserve(items_.size() + 1);
-                // double pile_area = 0;
-                for (Item& mitem : items_) {
-                    pile.emplace_back(mitem.transformedShape());
-                    // pile_area += mitem.area();
-                }
+                pile.reserve(items_.size()+1);
 
-                if (config_.debug_items)
-                {
-                    config_.debug_items(pile, Shapes(), nfps, RawShape());
+                 double pile_area = 0;
+                for(Item& mitem : items_) {
+                    pile.emplace_back(mitem.transformedShape());
+                    pile_area += mitem.area();
                 }
 
                 auto merged_pile = nfp::merge(pile);
-                auto& bin = bin_;
                 double norm = norm_;
                 auto pbb = sl::boundingBox(merged_pile);
-                auto binbb = sl::boundingBox(bin);
+
 
                 // This is the kernel part of the object function that is
                 // customizable by the library client
                 std::function<double(const Item&)> _objfunc;
-                if (config_.object_function) _objfunc = config_.object_function;
-                else {
-
+                if (config_.object_function)  ///_objfunc = config_.object_function;
+                {
                     // Inside check has to be strict if no alignment was enabled
                     std::function<double(const Box&)> ins_check;
-                    if (config_.alignment == Config::Alignment::DONT_ALIGN)
+                    if (alignment == Config::Alignment::DONT_ALIGN)
                         ins_check = [&binbb, norm](const Box& fullbb) {
                         double ret = 0;
                         if (!sl::isInside(fullbb, binbb))
@@ -1517,24 +1069,151 @@ private:
                         return std::pow(miss, 2);
                     };
 
-                    _objfunc = [norm, binbb, pbb, ins_check](const Item& item)
+                    if (bNest2d)
+                    {
+                        _objfunc = [binbb, pbb, ins_check, type, pile_area, pair_pack, &alignment](const Item& item)
+                        {
+                            auto ibb = item.boundingBox();
+                            auto fullbb = sl::boundingBox(pbb, ibb);
+                            double score = 0;
+                            double binH = binbb.height();
+                            double binW = binbb.width();
+                            auto pbb_area = pbb.area();
+                            auto fullbb_area = fullbb.area();
+                            double norm_pdd = pbb.height() + pbb.width();
+
+                            switch (type)
+                            {
+                            case 3:
+                            case 4: 
+                            case 11: {
+                                score = pl::distance(ibb.center(),
+                                    binbb.center()) / norm_pdd;
+                                double fullbbH = fullbb.height();
+                                double fullbbW = fullbb.width();
+                                double fullbbH_cal = fullbbW / binW * binH;
+                                double fullbbW_cal = fullbbH / binH * binW;
+                                fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                                fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                                double totalArea = fullbbH * fullbbW;
+                                double area_score = 1 - pile_area / totalArea;//最小面积加权
+                                if (pbb_area == fullbb_area)
+                                    area_score = 0;
+                                score = score * 0.5 + area_score * 0.5;
+                            }break;
+                            case 5: {
+                                score = (binH - ibb.center().Y) / binH;
+                                double score_mid = fabs(ibb.center().X - binW / 2) / binW;
+                                score = score * 0.5 + score_mid * 0.5;
+                            }break;
+                            case 6: {
+                                if (pair_pack)
+                                {
+                                    score = pl::distance(ibb.center(),
+                                        binbb.center()) / norm_pdd;
+                                    double fullbbH = fullbb.height();
+                                    double fullbbW = fullbb.width();
+                                    double fullbbH_cal = fullbbW / binW * binH;
+                                    double fullbbW_cal = fullbbH / binH * binW;
+                                    fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                                    fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                                    double totalArea = fullbbH * fullbbW;
+                                    double area_score = 1 - pile_area / totalArea;//最小面积加权
+                                    if (pbb_area == fullbb_area)
+                                        area_score = 0;
+                                    score = score * 0.2 + area_score * 0.8;
+                                }
+                                else
+                                {
+                                    score = ibb.center().Y / binH;
+                                    double score_mid = fabs(ibb.center().X - pbb.center().X) / binW;
+                                    score = score * 0.45 + score_mid * 0.55;
+                                    alignment = Config::Alignment::CENTER;
+                                }
+                            }break;
+                            case 7: {
+                                score = fabs(binH - ibb.center().Y) / binH;
+                                double score_left = ibb.center().X / binW;
+                                score = score * 0.9 + score_left * 0.1;
+                            }break;
+                            case 8: {
+                                score = ibb.center().Y / binH;
+                                double score_left = ibb.center().X / binW;
+                                score = score * 0.9 + score_left * 0.1;
+                            }break;
+                            case 9: {
+                                score = ibb.center().X / binW;
+                                double score_top = fabs(binH - ibb.center().Y) / binH;
+                                score = score * 0.9 + score_top * 0.1;
+                            }break;
+                            case 10: {
+                                score = fabs(binW - ibb.center().X) / binW;
+                                double score_top = fabs(binH - ibb.center().Y) / binH;
+                                score = score * 0.9 + score_top * 0.1;
+                            }break;
+
+                            }
+                            score += ins_check(fullbb);
+
+                            return score;
+                        };
+                    }
+                    else
+                    {
+                        _objfunc = config_.object_function;
+                    }
+                }
+                else {
+
+                    // Inside check has to be strict if no alignment was enabled
+                    std::function<double(const Box&)> ins_check;
+                    if(config_.alignment == Config::Alignment::DONT_ALIGN)
+                        ins_check = [&binbb, norm](const Box& fullbb) {
+                            double ret = 0;
+                            if(!sl::isInside(fullbb, binbb))
+                                ret += norm;
+                            return ret;
+                        };
+                    else
+                        ins_check = [&bin](const Box& fullbb) {
+                            double miss = overfit(fullbb, bin);
+                            miss = miss > 0? miss : 0;
+                            return std::pow(miss, 2);
+                        };
+
+                    _objfunc = [norm, binbb, pbb, ins_check, pile_area, remlist](const Item& item)
                     {
                         auto ibb = item.boundingBox();
                         auto fullbb = sl::boundingBox(pbb, ibb);
+                        double binH = binbb.height();
+                        double binW = binbb.width();
+                        double norm_pdd = pbb.height() + pbb.width();
+                        double score = 0.f;
+                        score = pl::distance(ibb.center(), binbb.center())/ norm_pdd;
 
-                        double score = pl::distance(ibb.center(),
-                            binbb.center());
-                        score /= norm;
+                        if (!remlist.empty())
+                        {
+                            double fullbbH = fullbb.height();
+                            double fullbbW = fullbb.width();
+                            double fullbbH_cal = fullbbW / binW * binH;
+                            double fullbbW_cal = fullbbH / binH * binW;
+                            fullbbH = fullbbH > fullbbH_cal ? fullbbH : fullbbH_cal;
+                            fullbbW = fullbbW > fullbbW_cal ? fullbbW : fullbbW_cal;
+                            double totalArea = fullbbH * fullbbW;
+                            double area_score = 1 - pile_area / totalArea;//最小面积加权
+                            score = score * 0.5 + area_score * 0.5;
+                        }
 
                         score += ins_check(fullbb);
 
                         return score;
                     };
+
                 }
 
                 // Our object function for placement
                 auto rawobjfunc = [_objfunc, iv, startpos]
-                (Vertex v, Item& itm)
+                        (Vertex v, Item& itm)
                 {
                     auto d = v - iv;
                     d += startpos;
@@ -1544,14 +1223,12 @@ private:
 
                 auto getNfpPoint = [&ecache](const Optimum& opt)
                 {
-                    return opt.hidx < 0 ? ecache[opt.nfpidx].coords(opt.relpos) :
-                        ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
+                    return opt.hidx < 0? ecache[opt.nfpidx].coords(opt.relpos) :
+                            ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
                 };
 
-                auto alignment = config_.alignment;
-
-                auto boundaryCheck = [this, alignment, &pile, &nfps, &merged_pile, &getNfpPoint,
-                    &item, &bin, &iv, &startpos](const Optimum& o)
+                auto boundaryCheck = [this, &pile, &nfps, bNest2d, alignment, &merged_pile, &getNfpPoint,
+                        &item, &bin, &iv, &startpos] (const Optimum& o)
                 {
                     auto v = getNfpPoint(o);
                     auto d = v - iv;
@@ -1561,11 +1238,19 @@ private:
                     merged_pile.emplace_back(item.transformedShape());
                     auto chull = sl::convexHull(merged_pile);
 
+                    if (config_.debug_items)
+                    {
+                        config_.debug_items(pile, merged_pile, nfps, chull);
+                    }
+
                     merged_pile.pop_back();
 
                     double miss = 0;
                     if (alignment == Config::Alignment::DONT_ALIGN)
+                    {
+                        if(!bNest2d) chull = sl::convexHull(item.transformedShape());
                         miss = sl::isInside(chull, bin) ? -1.0 : 1.0;
+                    }
                     else miss = overfit(chull, bin);
 
                     return miss;
@@ -1574,9 +1259,9 @@ private:
                 Optimum optimum(0, 0);
                 double best_score = std::numeric_limits<double>::max();
                 std::launch policy = std::launch::deferred;
-                if (config_.parallel) policy |= std::launch::async;
+                if(config_.parallel) policy |= std::launch::async;
 
-                if (config_.before_packing)
+                if(config_.before_packing)
                     config_.before_packing(merged_pile, items_, remlist);
 
                 using OptResult = opt::Result<double>;
@@ -1584,7 +1269,7 @@ private:
 
                 // Local optimization with the four polygon corners as
                 // starting points
-                for (unsigned ch = 0; ch < ecache.size(); ch++) {
+                for(unsigned ch = 0; ch < ecache.size(); ch++) {
                     auto& cache = ecache[ch];
 
                     OptResults results(cache.corners().size());
@@ -1594,118 +1279,102 @@ private:
                     float accuracy = config_.accuracy;
 
                     __parallel::enumerate(
-                        cache.corners().begin(),
-                        cache.corners().end(),
-                        [this, &results, &item, &rofn, &nfpoint, ch, accuracy, &startpos, &getNfpPoint, &pile, &iv]
-                    (double pos, size_t n)
+                                cache.corners().begin(),
+                                cache.corners().end(),
+                                [&results, &item, &rofn, &nfpoint, ch, accuracy]
+                                (double pos, size_t n)
+                    {
+                        Optimizer solver(accuracy);
+
+                        Item itemcpy = item;
+                        auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy]
+                                (double relpos)
                         {
-                            Optimizer solver(accuracy);
+                            Optimum op(relpos, ch);
+                            return rofn(nfpoint(op), itemcpy);
+                        };
 
-                            Item itemcpy = item;
-                            auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy]
-                            (double relpos)
-                            {
-                                Optimum op(relpos, ch);
-                                return rofn(nfpoint(op), itemcpy);
-                            };
-
-                            try {
-                                results[n] = solver.optimize_min(contour_ofn,
-                                    opt::initvals<double>(pos),
-                                    opt::bound<double>(0, 1.0)
-                                );
-
-                                if (config_.debug_items)
-                                {
-                                    Optimum optimum(std::get<0>(results[n].optimum), ch, -1);
-                                    auto d = getNfpPoint(optimum) - iv;
-                                    d += startpos;
-
-                                    item.translation(d);
-
-                                    config_.debug_items(pile, Shapes(), Shapes(), item.transformedShape());
-                                }
-
-                            }
-                            catch (std::exception& e) {
-                                derr() << "ERROR: " << e.what() << "\n";
-                            }
-                        }, policy);
+                        try {
+                            results[n] = solver.optimize_min(contour_ofn,
+                                            opt::initvals<double>(pos),
+                                            opt::bound<double>(0, 1.0)
+                                            );
+                        } catch(std::exception& e) {
+                            derr() << "ERROR: " << e.what() << "\n";
+                        }
+                    }, policy);
 
                     auto resultcomp =
-                        [](const OptResult& r1, const OptResult& r2) {
+                            []( const OptResult& r1, const OptResult& r2 ) {
                         return r1.score < r2.score;
                     };
 
                     auto mr = *std::min_element(results.begin(), results.end(),
-                        resultcomp);
+                                                resultcomp);
 
-                    if (mr.score < best_score) {
+                    if(mr.score < best_score) {
                         Optimum o(std::get<0>(mr.optimum), ch, -1);
                         double miss = boundaryCheck(o);
-                        if (miss <= 0) {
+                        if(miss <= 0) {
                             best_score = mr.score;
                             optimum = o;
-                        }
-                        else {
+                        } else {
                             best_overfit = std::min(miss, best_overfit);
                         }
                     }
 
-                    for (unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
+                    for(unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
                         results.clear();
                         results.resize(cache.corners(hidx).size());
 
                         // TODO : use parallel for
                         __parallel::enumerate(cache.corners(hidx).begin(),
-                            cache.corners(hidx).end(),
-                            [&results, &item, &nfpoint,
-                            &rofn, ch, hidx, accuracy]
-                        (double pos, size_t n)
-                            {
-                                Optimizer solver(accuracy);
+                                      cache.corners(hidx).end(),
+                                      [&results, &item, &nfpoint,
+                                       &rofn, ch, hidx, accuracy]
+                                      (double pos, size_t n)
+                        {
+                            Optimizer solver(accuracy);
 
-                                Item itmcpy = item;
-                                auto hole_ofn =
+                            Item itmcpy = item;
+                            auto hole_ofn =
                                     [&rofn, &nfpoint, ch, hidx, &itmcpy]
-                                (double pos)
-                                {
-                                    Optimum opt(pos, ch, hidx);
-                                    return rofn(nfpoint(opt), itmcpy);
-                                };
+                                    (double pos)
+                            {
+                                Optimum opt(pos, ch, hidx);
+                                return rofn(nfpoint(opt), itmcpy);
+                            };
 
-                                try {
-                                    results[n] = solver.optimize_min(hole_ofn,
-                                        opt::initvals<double>(pos),
-                                        opt::bound<double>(0, 1.0)
-                                    );
+                            try {
+                                results[n] = solver.optimize_min(hole_ofn,
+                                                opt::initvals<double>(pos),
+                                                opt::bound<double>(0, 1.0)
+                                                );
 
-                                }
-                                catch (std::exception& e) {
-                                    derr() << "ERROR: " << e.what() << "\n";
-                                }
-                            }, policy);
+                            } catch(std::exception& e) {
+                                derr() << "ERROR: " << e.what() << "\n";
+                            }
+                        }, policy);
 
                         auto hmr = *std::min_element(results.begin(),
-                            results.end(),
-                            resultcomp);
+                                                    results.end(),
+                                                    resultcomp);
 
-                        if (hmr.score < best_score) {
+                        if(hmr.score < best_score) {
                             Optimum o(std::get<0>(hmr.optimum),
-                                ch, hidx);
+                                      ch, hidx);
                             double miss = boundaryCheck(o);
-                            if (miss <= 0.0) {
+                            if(miss <= 0.0) {
                                 best_score = hmr.score;
                                 optimum = o;
-                            }
-                            else {
+                            } else {
                                 best_overfit = std::min(miss, best_overfit);
                             }
                         }
                     }
                 }
 
-                if (best_score < global_score) {
+                if( best_score < global_score && fabs(best_score - global_score) > 0.0001) {
                     auto d = getNfpPoint(optimum) - iv;
                     d += startpos;
                     final_tr = d;
@@ -1713,20 +1382,356 @@ private:
                     can_pack = true;
                     global_score = best_score;
                 }
+
+                if (rot.toDegrees() == 0.f && can_pack && (!bNest2d || type == 4 || type == 5))
+                    break;
             }
 
             item.translation(final_tr);
             item.rotation(final_rot);
         }
 
-        if (can_pack) {
-            ret = PackResult(item);
-        }
-        else {
-            ret = PackResult(best_overfit);
+        if (bNest2d && can_pack)
+        {
+            //判断当前模型排进去后是否会出界，若出界，将其转至原点位置
+            Vertex origin_tr = { 0, 0 };
+            auto trans_item = item.transformedShape_s();
+            Clipper3r::Clipper a;
+            a.AddPath(trans_item.Contour, Clipper3r::ptSubject, true);
+            for (int i = 0; i < items_.size(); i++)
+            {
+                Item item_tmp = items_[i];
+                auto trans_item_tmp = item_tmp.transformedShape_s();
+                a.AddPath(trans_item_tmp.Contour, Clipper3r::ptSubject, true);
+            }
+            Clipper3r::IntRect ibb_dst = a.GetBounds();
+            int ibbH = binbb.height() - 2 * item.inflation() + 2;
+            int ibbW = binbb.width() - 2 * item.inflation() + 2;
+
+            if (!(ibb_dst.bottom - ibb_dst.top <= ibbH &&
+                ibb_dst.right - ibb_dst.left <= ibbW))
+            {
+                pack_out = true;
+                item.translation(origin_tr);
+                item.rotation(-0.5*Pi);//超界标志
+            }
         }
 
+        if(can_pack) {
+            if(pack_out) 
+                ret = PackResult(item, best_overfit);
+            else 
+                ret = PackResult(item);
+        } else {
+            item.translation({});
+            item.rotation(-0.5 * Pi);//超界标志
+            ret = PackResult(item, best_overfit);
+        }
+
+
         return ret;
+
+
+        //PackResult ret;
+
+        //bool can_pack = false;
+        //double best_overfit = std::numeric_limits<double>::max();
+
+        //ItemGroup remlist;
+        //if (remaining.valid) {
+        //    remlist.insert(remlist.end(), remaining.from, remaining.to);
+        //}
+
+        //if (items_.empty()) {
+        //    setInitialPosition(item);
+        //    best_overfit = overfit(item.transformedShape(), bin_);
+        //    can_pack = best_overfit <= 0;
+        //}
+        //else {
+
+        //    double global_score = std::numeric_limits<double>::max();
+
+        //    auto initial_tr = item.translation();
+        //    auto initial_rot = item.rotation();
+        //    Vertex final_tr = { 0, 0 };
+        //    Radians final_rot = initial_rot;
+        //    Shapes nfps;
+
+        //    for (auto rot : config_.rotations) {
+
+        //        item.translation(initial_tr);
+        //        item.rotation(initial_rot + rot);
+        //        item.boundingBox(); // fill the bb cache
+
+        //        // place the new item outside of the print bed to make sure
+        //        // it is disjunct from the current merged pile
+        //        placeOutsideOfBin(item);
+
+        //        nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+
+        //        auto iv = item.referenceVertex();
+
+        //        auto startpos = item.translation();
+
+        //        std::vector<Edges> ecache;
+        //        ecache.reserve(nfps.size());
+
+        //        for (auto& nfp : nfps) {
+        //            ecache.emplace_back(nfp);
+        //            ecache.back().accuracy(config_.accuracy);
+        //        }
+
+        //        Shapes pile;
+        //        pile.reserve(items_.size() + 1);
+        //        // double pile_area = 0;
+        //        for (Item& mitem : items_) {
+        //            pile.emplace_back(mitem.transformedShape());
+        //            // pile_area += mitem.area();
+        //        }
+
+        //        if (config_.debug_items)
+        //        {
+        //            config_.debug_items(pile, Shapes(), nfps, RawShape());
+        //        }
+
+        //        auto merged_pile = nfp::merge(pile);
+        //        auto& bin = bin_;
+        //        double norm = norm_;
+        //        auto pbb = sl::boundingBox(merged_pile);
+        //        auto binbb = sl::boundingBox(bin);
+
+        //        // This is the kernel part of the object function that is
+        //        // customizable by the library client
+        //        std::function<double(const Item&)> _objfunc;
+        //        if (config_.object_function) _objfunc = config_.object_function;
+        //        else {
+
+        //            // Inside check has to be strict if no alignment was enabled
+        //            std::function<double(const Box&)> ins_check;
+        //            if (config_.alignment == Config::Alignment::DONT_ALIGN)
+        //                ins_check = [&binbb, norm](const Box& fullbb) {
+        //                double ret = 0;
+        //                if (!sl::isInside(fullbb, binbb))
+        //                    ret += norm;
+        //                return ret;
+        //            };
+        //            else
+        //                ins_check = [&bin](const Box& fullbb) {
+        //                double miss = overfit(fullbb, bin);
+        //                miss = miss > 0 ? miss : 0;
+        //                return std::pow(miss, 2);
+        //            };
+
+        //            _objfunc = [norm, binbb, pbb, ins_check](const Item& item)
+        //            {
+        //                auto ibb = item.boundingBox();
+        //                auto fullbb = sl::boundingBox(pbb, ibb);
+
+        //                double score = pl::distance(ibb.center(),
+        //                    binbb.center());
+        //                score /= norm;
+
+        //                score += ins_check(fullbb);
+
+        //                return score;
+        //            };
+        //        }
+
+        //        // Our object function for placement
+        //        auto rawobjfunc = [_objfunc, iv, startpos]
+        //        (Vertex v, Item& itm)
+        //        {
+        //            auto d = v - iv;
+        //            d += startpos;
+        //            itm.translation(d);
+        //            return _objfunc(itm);
+        //        };
+
+        //        auto getNfpPoint = [&ecache](const Optimum& opt)
+        //        {
+        //            return opt.hidx < 0 ? ecache[opt.nfpidx].coords(opt.relpos) :
+        //                ecache[opt.nfpidx].coords(opt.hidx, opt.relpos);
+        //        };
+
+        //        auto alignment = config_.alignment;
+
+        //        auto boundaryCheck = [this, alignment, &pile, &nfps, &merged_pile, &getNfpPoint,
+        //            &item, &bin, &iv, &startpos](const Optimum& o)
+        //        {
+        //            auto v = getNfpPoint(o);
+        //            auto d = v - iv;
+        //            d += startpos;
+        //            item.translation(d);
+
+        //            merged_pile.emplace_back(item.transformedShape());
+        //            auto chull = sl::convexHull(merged_pile);
+
+        //            merged_pile.pop_back();
+
+        //            double miss = 0;
+        //            if (alignment == Config::Alignment::DONT_ALIGN)
+        //                miss = sl::isInside(chull, bin) ? -1.0 : 1.0;
+        //            else miss = overfit(chull, bin);
+
+        //            return miss;
+        //        };
+
+        //        Optimum optimum(0, 0);
+        //        double best_score = std::numeric_limits<double>::max();
+        //        std::launch policy = std::launch::deferred;
+        //        if (config_.parallel) policy |= std::launch::async;
+
+        //        if (config_.before_packing)
+        //            config_.before_packing(merged_pile, items_, remlist);
+
+        //        using OptResult = opt::Result<double>;
+        //        using OptResults = std::vector<OptResult>;
+
+        //        // Local optimization with the four polygon corners as
+        //        // starting points
+        //        for (unsigned ch = 0; ch < ecache.size(); ch++) {
+        //            auto& cache = ecache[ch];
+
+        //            OptResults results(cache.corners().size());
+
+        //            auto& rofn = rawobjfunc;
+        //            auto& nfpoint = getNfpPoint;
+        //            float accuracy = config_.accuracy;
+
+        //            __parallel::enumerate(
+        //                cache.corners().begin(),
+        //                cache.corners().end(),
+        //                [this, &results, &item, &rofn, &nfpoint, ch, accuracy, &startpos, &getNfpPoint, &pile, &iv]
+        //            (double pos, size_t n)
+        //                {
+        //                    Optimizer solver(accuracy);
+
+        //                    Item itemcpy = item;
+        //                    auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy]
+        //                    (double relpos)
+        //                    {
+        //                        Optimum op(relpos, ch);
+        //                        return rofn(nfpoint(op), itemcpy);
+        //                    };
+
+        //                    try {
+        //                        results[n] = solver.optimize_min(contour_ofn,
+        //                            opt::initvals<double>(pos),
+        //                            opt::bound<double>(0, 1.0)
+        //                        );
+
+        //                        if (config_.debug_items)
+        //                        {
+        //                            Optimum optimum(std::get<0>(results[n].optimum), ch, -1);
+        //                            auto d = getNfpPoint(optimum) - iv;
+        //                            d += startpos;
+
+        //                            item.translation(d);
+
+        //                            config_.debug_items(pile, Shapes(), Shapes(), item.transformedShape());
+        //                        }
+
+        //                    }
+        //                    catch (std::exception& e) {
+        //                        derr() << "ERROR: " << e.what() << "\n";
+        //                    }
+        //                }, policy);
+
+        //            auto resultcomp =
+        //                [](const OptResult& r1, const OptResult& r2) {
+        //                return r1.score < r2.score;
+        //            };
+
+        //            auto mr = *std::min_element(results.begin(), results.end(),
+        //                resultcomp);
+
+        //            if (mr.score < best_score) {
+        //                Optimum o(std::get<0>(mr.optimum), ch, -1);
+        //                double miss = boundaryCheck(o);
+        //                if (miss <= 0) {
+        //                    best_score = mr.score;
+        //                    optimum = o;
+        //                }
+        //                else {
+        //                    best_overfit = std::min(miss, best_overfit);
+        //                }
+        //            }
+
+        //            for (unsigned hidx = 0; hidx < cache.holeCount(); ++hidx) {
+        //                results.clear();
+        //                results.resize(cache.corners(hidx).size());
+
+        //                // TODO : use parallel for
+        //                __parallel::enumerate(cache.corners(hidx).begin(),
+        //                    cache.corners(hidx).end(),
+        //                    [&results, &item, &nfpoint,
+        //                    &rofn, ch, hidx, accuracy]
+        //                (double pos, size_t n)
+        //                    {
+        //                        Optimizer solver(accuracy);
+
+        //                        Item itmcpy = item;
+        //                        auto hole_ofn =
+        //                            [&rofn, &nfpoint, ch, hidx, &itmcpy]
+        //                        (double pos)
+        //                        {
+        //                            Optimum opt(pos, ch, hidx);
+        //                            return rofn(nfpoint(opt), itmcpy);
+        //                        };
+
+        //                        try {
+        //                            results[n] = solver.optimize_min(hole_ofn,
+        //                                opt::initvals<double>(pos),
+        //                                opt::bound<double>(0, 1.0)
+        //                            );
+
+        //                        }
+        //                        catch (std::exception& e) {
+        //                            derr() << "ERROR: " << e.what() << "\n";
+        //                        }
+        //                    }, policy);
+
+        //                auto hmr = *std::min_element(results.begin(),
+        //                    results.end(),
+        //                    resultcomp);
+
+        //                if (hmr.score < best_score) {
+        //                    Optimum o(std::get<0>(hmr.optimum),
+        //                        ch, hidx);
+        //                    double miss = boundaryCheck(o);
+        //                    if (miss <= 0.0) {
+        //                        best_score = hmr.score;
+        //                        optimum = o;
+        //                    }
+        //                    else {
+        //                        best_overfit = std::min(miss, best_overfit);
+        //                    }
+        //                }
+        //            }
+        //        }
+
+        //        if (best_score < global_score) {
+        //            auto d = getNfpPoint(optimum) - iv;
+        //            d += startpos;
+        //            final_tr = d;
+        //            final_rot = initial_rot + rot;
+        //            can_pack = true;
+        //            global_score = best_score;
+        //        }
+        //    }
+
+        //    item.translation(final_tr);
+        //    item.rotation(final_rot);
+        //}
+
+        //if (can_pack) {
+        //    ret = PackResult(item);
+        //}
+        //else {
+        //    ret = PackResult(best_overfit);
+        //}
+
+        //return ret;
     }
 
     inline void finalAlign(const RawShape& pbin) {
