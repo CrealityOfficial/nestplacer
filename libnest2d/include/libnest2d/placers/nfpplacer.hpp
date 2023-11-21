@@ -274,7 +274,6 @@ template<class RawShape> class EdgeCache {
         contour_.corners.reserve(N / S + 1);
         contour_.corners.emplace_back(0.0);
         auto N_1 = N-1;
-        contour_.corners.emplace_back(0.0);
         for(size_t i = 0; i < N_1; i += S) {
             contour_.corners.emplace_back(
                     contour_.distances.at(i) / contour_.full_distance);
