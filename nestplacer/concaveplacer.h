@@ -15,7 +15,7 @@ namespace nestplacer
 		float distance = 0.0f;
 		float eDistance = 0.0f;
 		PlaceType packType = PlaceType::CONCAVE;
-		float rotationAngle = 20.0f;
+		float rotationAngle = 90.0f;
 
 		std::string rootDir;
 		NestCallback callback = {};
@@ -48,6 +48,8 @@ namespace nestplacer
 
 	NESTPLACER_API void layout_all_nest(const ConcaveItems& models, const NestConcaveParam& param,
 		ConcaveNestDebugger* debugger = nullptr);
+
+    NESTPLACER_API ConcaveItems test_nest(NestConcaveParam& param, ConcaveNestDebugger* debugger = nullptr);
 
 	class NestPlacerImpl;
 	class NESTPLACER_API NestPlacer

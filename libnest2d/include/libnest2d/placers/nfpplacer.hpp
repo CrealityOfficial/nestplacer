@@ -595,7 +595,7 @@ private:
 
     using Shapes = TMultiShape<RawShape>;
 
-    Shapes calcnfp(const Item &trsh, Lvl<nfp::NfpLevel::CONVEX_ONLY>)
+    Shapes calcnfp(const Item &trsh, Lvl<nfp::NfpLevel::CONVEX_ONLY>, bool correct = true)
     {
         using namespace nfp;
 
@@ -621,12 +621,13 @@ private:
         if (config_.parallel) policy |= std::launch::async;
 
         __parallel::enumerate(items_.begin(), items_.end(),
-                              [&nfps, &trsh](const Item& sh, size_t n)
+                              [&nfps, &trsh, &correct](const Item& sh, size_t n)
         {
             auto& fixedp = sh.transformedShape();
             auto& orbp = trsh.transformedShape();
             auto subnfp_r = noFitPolygon<NfpLevel::CONVEX_ONLY>(fixedp, orbp);
-            correctNfpPosition(subnfp_r, sh, trsh);
+            if(correct)
+                correctNfpPosition(subnfp_r, sh, trsh);
             nfps[n] = subnfp_r.first;
         }, policy);
 
@@ -1463,6 +1464,16 @@ private:
 
                 nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
 
+                if (config_.debug_items) {
+                    Shapes nfps1 = calcnfp(item, Lvl<MaxNfpLevel::value>(), false);
+                    Shapes allItems;
+                    for (Item& itm : items_) {
+                        allItems.emplace_back(itm.transformedShape());
+                    }
+                    allItems.emplace_back(item.transformedShape());
+                    config_.debug_items(allItems, nfps1, nfps, RawShape());
+                }
+
                 auto iv = item.referenceVertex();
 
                 auto startpos = item.translation();
@@ -1485,7 +1496,7 @@ private:
 
                 if (config_.debug_items)
                 {
-                    config_.debug_items(pile, Shapes(), nfps, RawShape());
+                    
                 }
 
                 auto merged_pile = nfp::merge(pile);

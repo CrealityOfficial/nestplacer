@@ -21,11 +21,11 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
-        int step = (int)(180.0f / param.rotationAngle);
-        config.placer_config.rotations.clear();
+        int step = (int)(360.0f / param.rotationAngle);
+        /*config.placer_config.rotations.clear();
         for (int i = 0; i < step; i++)
             config.placer_config.rotations.push_back(
-                libnest2d::Radians(libnest2d::Degrees((double)i * param.rotationAngle)));
+                libnest2d::Radians(libnest2d::Degrees((double)i * param.rotationAngle)));*/
 
         config.placer_config.root = param.rootDir;
     }
@@ -88,6 +88,72 @@ namespace nestplacer
             param.callback((int)i, rt);
         }
 	}
+
+    ConcaveItems test_nest(NestConcaveParam& param, ConcaveNestDebugger* debugger)
+    {
+        // Example polygons
+        std::vector<libnest2d::Item> input1(23, {
+                {-5000000, 8954050},
+                {5000000, 8954050},
+                {5000000, -45949},
+                {4972609, -568550},
+                {3500000, -8954050},
+                {-3500000, -8954050},
+                {-4972609, -568550},
+                {-5000000, -45949},
+                {-5000000, 8954050},
+            });
+        
+        std::vector<libnest2d::Item> input2(15, {
+               {-11750000, 13057900},
+               {-9807860, 15000000},
+               {4392139, 24000000},
+               {11750000, 24000000},
+               {11750000, -24000000},
+               {4392139, -24000000},
+               {-9807860, -15000000},
+               {-11750000, -13057900},
+               {-11750000, 13057900},
+            });
+        std::vector<libnest2d::Item> inputs;
+        inputs.insert(inputs.end(), input1.begin(), input1.end());
+        inputs.insert(inputs.end(), input2.begin(), input2.end());
+        const size_t size = inputs.size();
+        libnest2d::NestControl ctl;
+        initControl(ctl, size, param.tracer);
+
+        NfpFisrtFitConfig config;
+        //initConfig(config, param);
+        if (debugger) {
+            config.placer_config.parallel = false;
+            initDebugger(config, debugger);
+        }
+
+        Clipper3r::cInt distance = MM2INT(param.distance);
+        libnest2d::Box box({ 0,0 }, { 150000000, 150000000 });
+
+        // Perform the nesting with a box shaped bin
+        size_t bins = nest(inputs, box, distance, config, ctl);
+
+        ConcaveItems models;
+        param.box.min = trimesh::vec3(box.minCorner().X / 1E6, box.minCorner().Y / 1E6, 0);
+        param.box.max = trimesh::vec3(box.maxCorner().X / 1E6, box.maxCorner().Y / 1E6, 0);
+        // Retrieve resulting geometries
+        for (libnest2d::Item& r : inputs) {
+            ConcaveItem poly;
+            auto polygon = r.transformedShape();
+            for (const auto& p : polygon.Contour) {
+                poly.emplace_back(trimesh::vec3(p.X / 1E6, p.Y / 1E6, 0));
+            }
+            for (const auto& path : polygon.Holes) {
+                for (const auto& p : path) {
+                    poly.emplace_back(trimesh::vec3(p.X / 1E6, p.Y / 1E6, 0));
+                }
+            }
+            models.emplace_back(poly);
+        }
+        return models;
+    }
 
     class NestPlacerImpl
     {
