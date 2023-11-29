@@ -477,8 +477,8 @@ inline _Box<P> _Box<P>::infinite(const P& center) {
     C Mx = C((std::numeric_limits<C>::lowest() + 2 * getX(center)) / 2.01);
     C My = C((std::numeric_limits<C>::lowest() + 2 * getY(center)) / 2.01);
     
-    ret.minCorner() = center - P{Mx, My};
-    ret.maxCorner() = center + P{Mx, My};
+    ret.minCorner() = center + P{Mx, My};
+    ret.maxCorner() = center - P{Mx, My};
     
     return ret;
 }
