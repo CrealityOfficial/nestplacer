@@ -22,10 +22,10 @@ namespace nestplacer
         config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
 
         int step = (int)(360.0f / param.rotationAngle);
-        /*config.placer_config.rotations.clear();
+        config.placer_config.rotations.clear();
         for (int i = 0; i < step; i++)
             config.placer_config.rotations.push_back(
-                libnest2d::Radians(libnest2d::Degrees((double)i * param.rotationAngle)));*/
+                libnest2d::Radians(libnest2d::Degrees((double)i * param.rotationAngle)));
 
         config.placer_config.root = param.rootDir;
     }
@@ -89,10 +89,10 @@ namespace nestplacer
         }
 	}
 
-    ConcaveItems test_nest(NestConcaveParam& param, ConcaveNestDebugger* debugger)
+    int test_nest(ConcaveItems& models, NestConcaveParam& param, ConcaveNestDebugger* debugger)
     {
         // Example polygons
-        std::vector<libnest2d::Item> input1(23, {
+        std::vector<libnest2d::Item> input1(21, {
                 {-5000000, 8954050},
                 {5000000, 8954050},
                 {5000000, -45949},
@@ -123,19 +123,19 @@ namespace nestplacer
         initControl(ctl, size, param.tracer);
 
         NfpFisrtFitConfig config;
-        //initConfig(config, param);
+        initConfig(config, param);
         if (debugger) {
             config.placer_config.parallel = false;
             initDebugger(config, debugger);
         }
 
         Clipper3r::cInt distance = MM2INT(param.distance);
-        libnest2d::Box box({ 0,0 }, { 150000000, 150000000 });
+        int boxWidth = 150000000;
+        libnest2d::Box box({ 0,0 }, { 150000000, boxWidth });
 
         // Perform the nesting with a box shaped bin
         size_t bins = nest(inputs, box, distance, config, ctl);
 
-        ConcaveItems models;
         param.box.min = trimesh::vec3(box.minCorner().X / 1E6, box.minCorner().Y / 1E6, 0);
         param.box.max = trimesh::vec3(box.maxCorner().X / 1E6, box.maxCorner().Y / 1E6, 0);
         // Retrieve resulting geometries
@@ -152,7 +152,7 @@ namespace nestplacer
             }
             models.emplace_back(poly);
         }
-        return models;
+        return bins;
     }
 
     class NestPlacerImpl
