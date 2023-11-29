@@ -856,6 +856,12 @@ public:
         selector_.template packItems<PlacementStrategy>(
             from, to, bin_, pconfig_);
         
+        /*std::vector<Item> items;
+        while (from != to) {
+            items.emplace_back(*from);
+            ++from;
+        }*/
+
         if(min_obj_distance_ > 0) std::for_each(from, to, [infl](Item& item) {
             item.inflate(-infl);
         });
