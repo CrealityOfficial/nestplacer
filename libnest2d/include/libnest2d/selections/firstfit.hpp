@@ -115,7 +115,7 @@ public:
                         setX(pmin, 0), setY(pmin, height);
                         setX(pmax, width), setY(pmax, 2 * height);
                         placers.emplace_back(newBin);
-                        pconfig.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT;
+                        //pconfig.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT;
                         placers.back().configure(pconfig);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
