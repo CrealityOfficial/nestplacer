@@ -51,11 +51,7 @@ public:
     inline PlacerBoilerplate(const BinType& bin, const Config& cfg, unsigned cap = 50)
     {
         configure(cfg);
-        if (config_.needNewBin) {
-            newbin_ = bin;
-        } else {
-            bin_ = bin;
-        }
+        bin_ = bin;
         items_.reserve(cap);
     }
 
@@ -122,7 +118,6 @@ public:
 
 protected:
     BinType bin_;
-    BinType newbin_;
     ItemGroup items_;
     Cfg config_;
 };

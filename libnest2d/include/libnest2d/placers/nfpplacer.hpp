@@ -150,11 +150,6 @@ struct NfpPConfig {
      */
     bool parallel = true;
 
-    /**
-     * @brief If true, it will construct a new bin, and then put other objects in the new bin.
-     */
-    bool needNewBin = false;
-
     inline void setAlignment(int align)
     {
         alignment = Alignment(align);
@@ -627,11 +622,7 @@ public:
     }
 
     inline void clearItems() {
-        if (config_.needNewBin) {
-            finalAlign(newbin_);
-        } else {
-            finalAlign(bin_);
-        }
+        finalAlign(bin_);
         Base::clearItems();
     }
 
@@ -1480,7 +1471,6 @@ private:
         if (remaining.valid) {
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
-        if (config_.needNewBin) bin_ = newbin_;
         if (items_.empty()) {
             setInitialPosition(item);
             best_overfit = overfit(item.transformedShape(), bin_);
@@ -1803,23 +1793,27 @@ private:
     }
 
     inline void finalAlign(Box bbin) {
-        if(items_.empty() ||
-                config_.alignment == Config::Alignment::DONT_ALIGN) return;
+        if(items_.empty()) return;
 
         nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
-        for(Item& item : items_) 
-            if (!item.binId()) {
-                m.emplace_back(item.transformedShape());
-            } else {
-                m.emplace_back(item.transformedShape());
-            }
+        auto dx = bbin.width();
+        auto dy = bbin.height();
+        auto& pmin = bbin.minCorner();
+        auto& pmax = bbin.maxCorner();
+        for (Item& item : items_) {
+            int id = item.binId();
+            setX(pmin, 0), setY(pmin, id * dy);
+            setX(pmax, dx), setY(pmax, (id + 1) * dy);
+            item.translate({ 0,dy * id });
+            m.emplace_back(item.transformedShape());
+        }
 
         auto&& bb = sl::boundingBox(m);
 
         Vertex ci, cb;
 
-        switch(config_.starting_point) {
+        switch(config_.alignment) {
         case Config::Alignment::CENTER: {
             ci = bb.center();
             cb = bbin.center();
@@ -1845,7 +1839,11 @@ private:
             cb = bbin.maxCorner();
             break;
         }
-        default: ; // DONT_ALIGN
+        default: {
+            ci = bb.center();
+            cb = bbin.center();
+            break;
+        }; // DONT_ALIGN
         }
 
         auto d = cb - ci;
@@ -1884,7 +1882,11 @@ private:
             cb = bbin.maxCorner();
             break;
         }
-        default:;
+        default: {
+            ci = bb.center();
+            cb = bbin.center();
+            break;
+        };
         }
 
         auto d = cb - ci;
