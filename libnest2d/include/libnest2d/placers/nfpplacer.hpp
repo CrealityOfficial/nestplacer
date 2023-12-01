@@ -91,8 +91,8 @@ struct NfpPConfig {
 
     using ItemGroup = _ItemGroup<RawShape>;
 
-    enum class Alignment {
-        CENTER,
+    enum class Alignment:int {
+        CENTER=0,
         BOTTOM_LEFT,
         BOTTOM_RIGHT,
         TOP_LEFT,
@@ -149,6 +149,46 @@ struct NfpPConfig {
      * @brief If true, use all CPUs available. Run on a single core otherwise.
      */
     bool parallel = true;
+
+    /**
+     * @brief If true, it will construct a new bin, and then put other objects in the new bin.
+     */
+    bool needNewBin = false;
+
+    inline void setAlignment(int align)
+    {
+        alignment = Alignment(align);
+    }
+
+    inline void setStartPoint(int type)
+    {
+        starting_point = Alignment(type);
+    }
+    /// Where to align the resulting packed pile in the new bin.
+    Alignment new_alignment;
+
+    /// Where to start putting objects in the new bin.
+    Alignment new_starting_point;
+
+    inline void setNewAlignment(int align)
+    {
+        new_alignment = Alignment(align);
+    }
+
+    inline int getNewAlignment()const
+    {
+        return (int)new_alignment;
+    }
+
+    inline void setNewStartPoint(int type)
+    {
+        new_starting_point = Alignment(type);
+    }
+
+    inline int getNewStartPoint()const
+    {
+        return (int)new_starting_point;
+    }
 
     /**
      * @brief before_packing Callback that is called just before a search for
@@ -505,8 +545,8 @@ public:
 
     using Pile = nfp::Shapes<RawShape>;
 
-    inline explicit _NofitPolyPlacer(const BinType& bin):
-        Base(bin),
+    inline explicit _NofitPolyPlacer(const BinType& bin, const Config& cfg = Config()) :
+        Base(bin, cfg),
         norm_(std::sqrt(sl::area(bin)))
     {
         // In order to not have items out of bin, it will be shrinked by an
@@ -587,7 +627,11 @@ public:
     }
 
     inline void clearItems() {
-        finalAlign(bin_);
+        if (config_.needNewBin) {
+            finalAlign(newbin_);
+        } else {
+            finalAlign(bin_);
+        }
         Base::clearItems();
     }
 
@@ -1436,7 +1480,7 @@ private:
         if (remaining.valid) {
             remlist.insert(remlist.end(), remaining.from, remaining.to);
         }
-
+        if (config_.needNewBin) bin_ = newbin_;
         if (items_.empty()) {
             setInitialPosition(item);
             best_overfit = overfit(item.transformedShape(), bin_);
@@ -1764,12 +1808,18 @@ private:
 
         nfp::Shapes<RawShape> m;
         m.reserve(items_.size());
-        for(Item& item : items_) m.emplace_back(item.transformedShape());
+        for(Item& item : items_) 
+            if (!item.binId()) {
+                m.emplace_back(item.transformedShape());
+            } else {
+                m.emplace_back(item.transformedShape());
+            }
+
         auto&& bb = sl::boundingBox(m);
 
         Vertex ci, cb;
 
-        switch(config_.alignment) {
+        switch(config_.starting_point) {
         case Config::Alignment::CENTER: {
             ci = bb.center();
             cb = bbin.center();

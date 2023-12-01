@@ -592,7 +592,7 @@ public:
      */
     explicit PlacementStrategyLike(const BinType& bin,
                                    const Config& config = Config()):
-        impl_(bin)
+        impl_(bin, config)
     {
         configure(config);
     }
@@ -856,12 +856,6 @@ public:
         selector_.template packItems<PlacementStrategy>(
             from, to, bin_, pconfig_);
         
-        /*std::vector<Item> items;
-        while (from != to) {
-            items.emplace_back(*from);
-            ++from;
-        }*/
-
         if(min_obj_distance_ > 0) std::for_each(from, to, [infl](Item& item) {
             item.inflate(-infl);
         });

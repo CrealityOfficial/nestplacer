@@ -20,7 +20,7 @@ namespace nestplacer
     {
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
-
+        config.placer_config.setNewStartPoint(1);
         int step = (int)(360.0f / param.rotationAngle);
         config.placer_config.rotations.clear();
         for (int i = 0; i < step; i++)
@@ -92,7 +92,7 @@ namespace nestplacer
     int test_nest(ConcaveItems& models, NestConcaveParam& param, ConcaveNestDebugger* debugger)
     {
         // Example polygons
-        std::vector<libnest2d::Item> input1(21, {
+        std::vector<libnest2d::Item> input1(25, {
                 {-5000000, 8954050},
                 {5000000, 8954050},
                 {5000000, -45949},

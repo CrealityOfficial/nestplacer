@@ -114,11 +114,15 @@ public:
                         auto& pmax = newBin.maxCorner();
                         setX(pmin, 0), setY(pmin, height);
                         setX(pmax, width), setY(pmax, 2 * height);
-                        placers.emplace_back(newBin);
-                        //pconfig.starting_point = libnest2d::NfpPlacer::Config::Alignment::BOTTOM_LEFT;
-                        placers.back().configure(pconfig);
+                        pconfig.needNewBin = true;
+                        //pconfig.rotations = { 0.0, Pi / 2.0, Pi, 3 * Pi / 2 };
+                        pconfig.rotations = { 0.0 };
+                        pconfig.setAlignment(pconfig.getNewAlignment());
+                        pconfig.setStartPoint(pconfig.getNewStartPoint());
+                        placers.emplace_back(newBin, pconfig);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
+                        hasPlacerBin = false;
                     }
                 }
             }
