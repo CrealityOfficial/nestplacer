@@ -86,7 +86,6 @@ public:
         this->template remove_unpackable_items<Placer>(store_, bin, pconfig);
 
         auto it = store_.begin();
-        bool hasPlacerBin = false;
         while(it != store_.end() && !cancelled()) {
             bool was_packed = false;
             size_t j = 0;
@@ -104,30 +103,18 @@ public:
                         placers.back().configure(pconfig);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
-                        hasPlacerBin = true;
-                    }else if (hasPlacerBin) {
-                        //start a new placer at leftmost
-                        TBin newBin{bin};
-                        auto width = bin.width();
-                        auto height = bin.height();
-                        auto& pmin = newBin.minCorner();
-                        auto& pmax = newBin.maxCorner();
-                        setX(pmin, 0), setY(pmin, height);
-                        setX(pmax, width), setY(pmax, 2 * height);
-                        pconfig.needNewBin = true;
-                        //pconfig.rotations = { 0.0, Pi / 2.0, Pi, 3 * Pi / 2 };
-                        pconfig.rotations = { 0.0 };
+                    } else {
                         pconfig.setAlignment(pconfig.getNewAlignment());
                         pconfig.setStartPoint(pconfig.getNewStartPoint());
-                        placers.emplace_back(newBin, pconfig);
+                        placers.emplace_back(bin, pconfig);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
-                        hasPlacerBin = false;
                     }
                 }
             }
             ++it;
         }
+
     }
 
 };
