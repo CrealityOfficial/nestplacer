@@ -668,6 +668,12 @@ public:
     /// Unpack the last element (remove it from the list of packed items).
     inline void unpackLast() { impl_.unpackLast(); }
 
+    /// Load items which can not be packed in a certain bin.
+    void load_unpack(const ItemGroup& items)
+    {
+        impl_.load_unpack(items);
+    }
+
     /// Get the bin object.
     inline const BinType& bin() const { return impl_.bin(); }
 
@@ -676,6 +682,9 @@ public:
 
     /// Get the packed items.
     inline ItemGroup getItems() { return impl_.getItems(); }
+
+    /// Get unpacked items.
+    inline const ItemGroup& getUnPackItems() const { return impl_.getUnPackItems(); }
 
     /// Clear the packed items so a new session can be started.
     inline void clearItems() { impl_.clearItems(); }
