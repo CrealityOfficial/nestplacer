@@ -115,9 +115,22 @@ namespace nestplacer
                {-11750000, -13057900},
                {-11750000, 13057900},
             });
+
+        std::vector<libnest2d::Item> input3(6, {
+               {-13750000 * 3, 11057900 * 5},
+               {-9807860 * 3, 15000000 * 5},
+               {4392139 * 5, 18000000 * 5},
+               {13750000 * 5, 18000000 * 5},
+               {13750000 * 5, -18000000 * 5},
+               {4392139 * 5, -18000000 * 5},
+               {-9807860 * 5, -12000000 * 6},
+               {-13750000 * 2, -11057900 * 5},
+               {-13750000 * 2, 11057900 * 5},
+            });
         std::vector<libnest2d::Item> inputs;
         inputs.insert(inputs.end(), input1.begin(), input1.end());
         inputs.insert(inputs.end(), input2.begin(), input2.end());
+        inputs.insert(inputs.end(), input3.begin(), input3.end());
         const size_t size = inputs.size();
         libnest2d::NestControl ctl;
         initControl(ctl, size, param.tracer);

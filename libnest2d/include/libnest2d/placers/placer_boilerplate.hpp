@@ -95,7 +95,17 @@ public:
         farea_valid_ = false;
     }
 
+    void load_unpack(const ItemGroup& items)
+    {
+        for (const auto& item : items) {
+            unpacked_items_.emplace_back(item);
+        }
+        farea_valid_ = false;
+    }
+
     inline const ItemGroup& getItems() const { return items_; }
+
+    inline const ItemGroup& getUnPackItems() const { return unpacked_items_; }
 
     inline void clearItems() {
         items_.clear();
@@ -117,8 +127,10 @@ public:
     }
 
 protected:
+    Vertex br_;
     BinType bin_;
     ItemGroup items_;
+    ItemGroup unpacked_items_;
     Cfg config_;
 };
 

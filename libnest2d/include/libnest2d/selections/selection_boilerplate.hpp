@@ -32,6 +32,8 @@ protected:
         // Safety test: try to pack each item into an empty bin. If it fails
         // then it should be removed from the list
         auto it = c.begin();
+        Placer placer{ bin };
+        ItemGroup items;
         while (it != c.end() && !stopcond_()) {
 
             // WARNING: The copy of itm needs to be created before Placer.
@@ -45,10 +47,12 @@ protected:
             p.configure(pcfg);
             if (itm.area() <= 0 || !p.pack(cpy)) {
                 static_cast<Item&>(*it).binId(BIN_ID_UNSET);
+                items.emplace_back(std::ref(*it));
                 it = c.erase(it);
             }
             else it++;
         }
+        placer.load_unpack(items);
     }
 
     PackGroup packed_bins_;

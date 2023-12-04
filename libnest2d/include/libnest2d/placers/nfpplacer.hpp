@@ -1793,61 +1793,76 @@ private:
     }
 
     inline void finalAlign(Box bbin) {
-        if(items_.empty()) return;
+        if(items_.empty() && unpacked_items_.empty()) return;
+        if (!items_.empty()) {
+            nfp::Shapes<RawShape> m;
+            m.reserve(items_.size());
+            auto dx = bbin.width();
+            auto dy = bbin.height();
+            auto& pmin = bbin.minCorner();
+            auto& pmax = bbin.maxCorner();
+            for (Item& item : items_) {
+                int id = item.binId();
+                setX(pmin, 0), setY(pmin, id * dy);
+                setX(pmax, dx), setY(pmax, (id + 1) * dy);
+                item.translate({ 0,dy * id });
+                m.emplace_back(item.transformedShape());
+            }
 
-        nfp::Shapes<RawShape> m;
-        m.reserve(items_.size());
-        auto dx = bbin.width();
-        auto dy = bbin.height();
-        auto& pmin = bbin.minCorner();
-        auto& pmax = bbin.maxCorner();
-        for (Item& item : items_) {
-            int id = item.binId();
-            setX(pmin, 0), setY(pmin, id * dy);
-            setX(pmax, dx), setY(pmax, (id + 1) * dy);
-            item.translate({ 0,dy * id });
-            m.emplace_back(item.transformedShape());
-        }
+            auto&& bb = sl::boundingBox(m);
+            Vertex ci, cb;
+            switch (config_.alignment) {
+            case Config::Alignment::CENTER:
+            {
+                ci = bb.center();
+                cb = bbin.center();
+                break;
+            }
+            case Config::Alignment::BOTTOM_LEFT:
+            {
+                ci = bb.minCorner();
+                cb = bbin.minCorner();
+                break;
+            }
+            case Config::Alignment::BOTTOM_RIGHT:
+            {
+                ci = { getX(bb.maxCorner()), getY(bb.minCorner()) };
+                cb = { getX(bbin.maxCorner()), getY(bbin.minCorner()) };
+                break;
+            }
+            case Config::Alignment::TOP_LEFT:
+            {
+                ci = { getX(bb.minCorner()), getY(bb.maxCorner()) };
+                cb = { getX(bbin.minCorner()), getY(bbin.maxCorner()) };
+                break;
+            }
+            case Config::Alignment::TOP_RIGHT:
+            {
+                ci = bb.maxCorner();
+                cb = bbin.maxCorner();
+                break;
+            }
+            default:
+            {
+                ci = bb.center();
+                cb = bbin.center();
+                break;
+            }; // DONT_ALIGN
+            }
 
-        auto&& bb = sl::boundingBox(m);
-
-        Vertex ci, cb;
-
-        switch(config_.alignment) {
-        case Config::Alignment::CENTER: {
-            ci = bb.center();
-            cb = bbin.center();
-            break;
+            auto d = cb - ci;
+            for (Item& item : items_) item.translate(d);
         }
-        case Config::Alignment::BOTTOM_LEFT: {
-            ci = bb.minCorner();
-            cb = bbin.minCorner();
-            break;
+        if (!unpacked_items_.empty()) {
+            br_ = { getX(bbin.maxCorner()), getY(bbin.minCorner()) };
+            for (Item& item : unpacked_items_) {
+                auto&& bb = item.boundingBox();
+                Vertex ci = bb.minCorner();
+                auto d = br_ - ci;
+                item.translate(d);
+                br_.X += bb.width();
+            }
         }
-        case Config::Alignment::BOTTOM_RIGHT: {
-            ci = {getX(bb.maxCorner()), getY(bb.minCorner())};
-            cb = {getX(bbin.maxCorner()), getY(bbin.minCorner())};
-            break;
-        }
-        case Config::Alignment::TOP_LEFT: {
-            ci = {getX(bb.minCorner()), getY(bb.maxCorner())};
-            cb = {getX(bbin.minCorner()), getY(bbin.maxCorner())};
-            break;
-        }
-        case Config::Alignment::TOP_RIGHT: {
-            ci = bb.maxCorner();
-            cb = bbin.maxCorner();
-            break;
-        }
-        default: {
-            ci = bb.center();
-            cb = bbin.center();
-            break;
-        }; // DONT_ALIGN
-        }
-
-        auto d = cb - ci;
-        for(Item& item : items_) item.translate(d);
     }
 
     void setInitialPosition(Item& item) {        
