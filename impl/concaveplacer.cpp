@@ -104,7 +104,7 @@ namespace nestplacer
                 {-5000000, 8954050},
             });
         
-        std::vector<libnest2d::Item> input2(15, {
+        std::vector<libnest2d::Item> input2(25, {
                {-11750000, 13057900},
                {-9807860, 15000000},
                {4392139, 24000000},
@@ -116,21 +116,34 @@ namespace nestplacer
                {-11750000, 13057900},
             });
 
-        std::vector<libnest2d::Item> input3(6, {
+        std::vector<libnest2d::Item> input3(2, {
+               {-13750000 * 5, 11057900 * 5},
+               {-9807860 * 5, 15000000 * 5},
+               {4392139 * 6, 18000000 * 5},
+               {13750000 * 6, 18000000 * 5},
+               {18921390 * 6, 200000 * 5},
+               {13750000 * 6, -18000000 * 5},
+               {4392139 * 6, -18000000 * 5},
+               {-9807860 * 6, -12000000 * 6},
+               {-13750000 * 5, -11057900 * 5},
+               {-13750000 * 5, 11057900 * 5},
+            });
+        std::vector<libnest2d::Item> input4(4, {
                {-13750000 * 3, 11057900 * 5},
                {-9807860 * 3, 15000000 * 5},
-               {4392139 * 5, 18000000 * 5},
-               {13750000 * 5, 18000000 * 5},
-               {13750000 * 5, -18000000 * 5},
-               {4392139 * 5, -18000000 * 5},
-               {-9807860 * 5, -12000000 * 6},
+               {4392139 * 5, 20000000 * 5},
+               {13750000 * 5, 20000000 * 5},
+               {13750000 * 5, -20000000 * 5},
+               {4392139 * 5, -20000000 * 5},
+               {-9807860 * 5, -13000000 * 6},
                {-13750000 * 2, -11057900 * 5},
-               {-13750000 * 2, 11057900 * 5},
+               {-13750000 * 2, 1157900 * 5},
             });
         std::vector<libnest2d::Item> inputs;
         inputs.insert(inputs.end(), input1.begin(), input1.end());
         inputs.insert(inputs.end(), input2.begin(), input2.end());
         inputs.insert(inputs.end(), input3.begin(), input3.end());
+        inputs.insert(inputs.end(), input4.begin(), input4.end());
         const size_t size = inputs.size();
         libnest2d::NestControl ctl;
         initControl(ctl, size, param.tracer);
