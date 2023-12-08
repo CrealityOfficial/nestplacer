@@ -11,11 +11,17 @@ namespace nestplacer
 {
 	typedef trimesh::vec3 PlacerResultRT;  // x, y translation  z rotation angle
 
+	struct PlacerItemGeometry
+	{
+		std::vector<trimesh::vec3> outline;
+		std::vector<std::vector<trimesh::vec3>> holes;
+	};
+
 	class PlacerItem
 	{
 	public:
 		virtual ~PlacerItem() {}
-		virtual std::vector<trimesh::vec3> outline() = 0;  // loop polygon
+		virtual void outline(PlacerItemGeometry& geometry) = 0;  // loop polygon
 	};
 
 	struct PlacerParameter
