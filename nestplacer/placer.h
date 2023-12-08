@@ -28,11 +28,13 @@ namespace nestplacer
 	{
 		float itemGap = 0.0f;
 		float binItemGap = 0.0f;
-
 		bool rotate = true;
 		float rotateAngle = 45.0f;
 		trimesh::box2 binBox = trimesh::box2(trimesh::vec2(0.0f, 0.0f), trimesh::vec2(100.0f, 100.0f));
 		ccglobal::Tracer* tracer = nullptr;
+
+		//debug
+		std::string fileName;
 	};
 
 	class BinExtendStrategy
