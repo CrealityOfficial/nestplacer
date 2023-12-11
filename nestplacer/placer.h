@@ -9,7 +9,11 @@
 
 namespace nestplacer
 {
-	typedef trimesh::vec3 PlacerResultRT;  // x, y translation  z rotation angle
+	struct  PlacerResultRT 
+	{
+		trimesh::vec3 rt; // x, y translation  z rotation angle
+		int binIndex = 0;
+	};
 
 	struct PlacerItemGeometry
 	{
@@ -30,7 +34,6 @@ namespace nestplacer
 		float binItemGap = 0.0f;
 		bool rotate = true;
 		float rotateAngle = 45.0f;
-		trimesh::box2 binBox = trimesh::box2(trimesh::vec2(0.0f, 0.0f), trimesh::vec2(100.0f, 100.0f));
 		ccglobal::Tracer* tracer = nullptr;
 
 		//debug
@@ -42,7 +45,7 @@ namespace nestplacer
 	public:
 		virtual ~BinExtendStrategy() {}
 
-		virtual trimesh::box2 bounding(int index) = 0;
+		virtual trimesh::box2 bounding(int index) const = 0;
 	};
 
 	/// <summary>
@@ -54,8 +57,8 @@ namespace nestplacer
 	/// <param name="results"></param>   result rt, same size with actives
 	/// <param name="binExtendStrategy"></param>  bin extend strategy
 	/// <returns></returns>
-	NESTPLACER_API void place(const std::vector<PlacerItem>& fixed, const std::vector<PlacerItem>& actives,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, BinExtendStrategy* binExtendStrategy = nullptr);
+	NESTPLACER_API void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
+		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy);
 
 	/// <summary>
 	/// 
@@ -65,8 +68,20 @@ namespace nestplacer
 	/// <param name="parameter"></param>
 	/// <param name="results"></param>  result clone positions
 	/// <returns></returns>
-	NESTPLACER_API void extendFill(const std::vector<PlacerItem>& fixed, const std::vector<PlacerItem>& actives,
+	NESTPLACER_API void extendFill(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
 		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results);
+
+	class NESTPLACER_API YDefaultBinExtendStrategy : public BinExtendStrategy
+	{
+	public:
+		YDefaultBinExtendStrategy(const trimesh::box2& box, float dy);
+		virtual ~YDefaultBinExtendStrategy();
+
+		trimesh::box2 bounding(int index) const override;
+	protected:
+		trimesh::box2 m_box;
+		float m_dy;
+	};
 }
 
 #endif // NESTPLACER_PLACER_1702004306712_H
