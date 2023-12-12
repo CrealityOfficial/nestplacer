@@ -25,7 +25,7 @@ namespace nestplacer
 	{
 	public:
 		virtual ~PlacerItem() {}
-		virtual void outline(PlacerItemGeometry& geometry) = 0;  // loop polygon
+		virtual void polygon(PlacerItemGeometry& geometry) = 0;  // loop polygon
 	};
 
 	struct PlacerParameter
@@ -45,7 +45,7 @@ namespace nestplacer
 	public:
 		virtual ~BinExtendStrategy() {}
 
-		virtual trimesh::box2 bounding(int index) const = 0;
+		virtual trimesh::box3 bounding(int index) const = 0;
 	};
 
 	/// <summary>
@@ -74,12 +74,12 @@ namespace nestplacer
 	class NESTPLACER_API YDefaultBinExtendStrategy : public BinExtendStrategy
 	{
 	public:
-		YDefaultBinExtendStrategy(const trimesh::box2& box, float dy);
+		YDefaultBinExtendStrategy(const trimesh::box3& box, float dy);
 		virtual ~YDefaultBinExtendStrategy();
 
-		trimesh::box2 bounding(int index) const override;
+		trimesh::box3 bounding(int index) const override;
 	protected:
-		trimesh::box2 m_box;
+		trimesh::box3 m_box;
 		float m_dy;
 	};
 }
