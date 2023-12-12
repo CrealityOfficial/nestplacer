@@ -1,16 +1,34 @@
 #include "nestplacer/placer.h"
 #include "data.h"
-#include "conv.h"
 #include "debug.h"
+
+#define INT2UM(x) (static_cast<double>(x) / 1000000.0)
+#define UM2INT(x) (static_cast<Clipper3r::cInt>((x) * 1000000.0 + 0.5 * (((x) > 0) - ((x) < 0))))
 
 namespace nestplacer
 {
-    void convert(const PlacerItemGeometry& geometry, libnest2d::Item& item)
+    Clipper3r::IntPoint convertPoint(const trimesh::vec3& point)
+    {
+        return Clipper3r::IntPoint(UM2INT(point.x), UM2INT(point.y));
+    }
+
+    libnest2d::_Box<libnest2d::PointImpl> convertBox(const trimesh::box3& b)
+    {
+        Clipper3r::IntPoint minPoint(convertPoint(b.min));
+        Clipper3r::IntPoint maxPoint(convertPoint(b.max));
+        Clipper3r::IntPoint rect = maxPoint - minPoint;
+
+        libnest2d::_Box<libnest2d::PointImpl> binBox
+            = libnest2d::_Box<libnest2d::PointImpl>(rect.X, rect.Y, convertPoint(b.center()));
+        return binBox;
+    }
+
+    void convertItem(const PlacerItemGeometry& geometry, libnest2d::Item& item)
     {
         Clipper3r::Path contour;
         contour.reserve(geometry.outline.size());
         for (const auto& p : geometry.outline) {
-            contour.emplace_back(convert(p));
+            contour.emplace_back(convertPoint(p));
         }
         Clipper3r::Paths holes;
         holes.reserve(geometry.holes.size());
@@ -18,7 +36,7 @@ namespace nestplacer
             holes.emplace_back();
             holes.back().reserve(hole.size());
             for (const auto& p : hole) {
-                holes.back().emplace_back(convert(p));
+                holes.back().emplace_back(convertPoint(p));
             }
         }
         item = libnest2d::Item(contour, holes);
@@ -33,12 +51,12 @@ namespace nestplacer
 			nestplacer::PlacerItemGeometry geometry;
 			item->polygon(geometry);
             libnest2d::Item item{};
-            convert(geometry, item);
+            convertItem(geometry, item);
             inputs.emplace_back(item);
 		}
-        libnest2d::Coord distance = INT2MM(parameter.itemGap);
+        libnest2d::Coord distance = UM2INT(parameter.itemGap);
         trimesh::box3 binBox= binExtendStrategy.bounding(0);
-        libnest2d::Box box = convert(binBox);
+        libnest2d::Box box = convertBox(binBox);
 
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
@@ -57,8 +75,8 @@ namespace nestplacer
         for (size_t i = 0; i < inputs.size(); ++i) {
             const libnest2d::Item& item = inputs.at(i);
             PlacerResultRT pr;
-            pr.rt.x = INT2MM(item.translation().X);
-            pr.rt.y = INT2MM(item.translation().Y);
+            pr.rt.x = INT2UM(item.translation().X);
+            pr.rt.y = INT2UM(item.translation().Y);
             pr.rt.z = item.rotation().toDegrees();
             results.emplace_back(pr);
         }
@@ -88,8 +106,8 @@ namespace nestplacer
 	{
 		trimesh::box3 b = m_box;
 		float y = b.size().y;
-		b.min += y + m_dy;
-		b.max += y + m_dy;
+        b.min.y += (float)index * (y + m_dy);
+        b.max.y += (float)index * (y + m_dy);
 		return b;
 	}
 }
