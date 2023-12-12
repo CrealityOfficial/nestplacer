@@ -82,6 +82,17 @@ namespace nestplacer
 		trimesh::box3 m_box;
 		float m_dy;
 	};
+
+    class NESTPLACER_API FreeBinExtendStrategy : public BinExtendStrategy {
+    public:
+        FreeBinExtendStrategy(const trimesh::box3& box, float ratio);
+        virtual ~FreeBinExtendStrategy();
+
+        trimesh::box3 bounding(int index) const override;
+    protected:
+        trimesh::box3 m_box;
+        float m_ratio;
+    };
 }
 
 #endif // NESTPLACER_PLACER_1702004306712_H

@@ -78,6 +78,7 @@ namespace nestplacer
             pr.rt.x = INT2UM(item.translation().X);
             pr.rt.y = INT2UM(item.translation().Y);
             pr.rt.z = item.rotation().toDegrees();
+            pr.binIndex = item.binId();
             results.emplace_back(pr);
         }
 
@@ -110,4 +111,25 @@ namespace nestplacer
         b.max.y += (float)index * (y + m_dy);
 		return b;
 	}
+
+ 
+    FreeBinExtendStrategy::FreeBinExtendStrategy(const trimesh::box3& box, float rate)
+        : BinExtendStrategy()
+        , m_box(box)
+        , m_ratio(rate)
+    {
+    }
+
+    FreeBinExtendStrategy::~FreeBinExtendStrategy()
+    {
+    }
+
+    trimesh::box3 FreeBinExtendStrategy::bounding(int index) const
+    {
+        trimesh::box3 b = m_box;
+        trimesh::vec3 dir = b.size();
+        b.min += (float)index * dir * (1.0 + m_ratio);
+        b.max += (float)index * dir * (1.0 + m_ratio);
+        return b;
+    }
 }
