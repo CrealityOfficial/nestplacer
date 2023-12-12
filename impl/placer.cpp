@@ -18,7 +18,7 @@ namespace nestplacer
             holes.emplace_back();
             holes.back().reserve(hole.size());
             for (const auto& p : hole) {
-                holes.back().emplace_back(p);
+                holes.back().emplace_back(convert(p));
             }
         }
         item = libnest2d::Item(contour, holes);
