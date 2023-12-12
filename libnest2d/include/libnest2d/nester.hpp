@@ -674,6 +674,12 @@ public:
         impl_.load_unpack(items);
     }
 
+    ///Load each bin's translation.
+    void load_translate(const TPoint<RawShape>& tr)
+    {
+        impl_.load_translate(tr);
+    }
+
     /// Get the bin object.
     inline const BinType& bin() const { return impl_.bin(); }
 

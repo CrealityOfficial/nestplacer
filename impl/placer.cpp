@@ -55,13 +55,19 @@ namespace nestplacer
             inputs.emplace_back(item);
 		}
         libnest2d::Coord distance = UM2INT(parameter.itemGap);
-        trimesh::box3 binBox= binExtendStrategy.bounding(0);
-        libnest2d::Box box = convertBox(binBox);
 
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        
+        auto box_func = [&binExtendStrategy](const int& index) {
+            trimesh::box3 binBox = binExtendStrategy.bounding(index);
+            libnest2d::Box box = convertBox(binBox);
+            return box;
+        };
+        config.placer_config.box_function = box_func;
+        
         config.placer_config.setNewAlignment(1);
         int step = (int)(360.0f / parameter.rotateAngle);
         config.placer_config.rotations.clear();
@@ -69,7 +75,7 @@ namespace nestplacer
             config.placer_config.rotations.emplace_back(
                 libnest2d::Radians(libnest2d::Degrees((double)i * parameter.rotateAngle)));
 
-        size_t bins = nest(inputs, box, distance, config, ctl);
+        size_t bins = nest(inputs, box_func(0), distance, config, ctl);
 
         //return transformed items.
         for (size_t i = 0; i < inputs.size(); ++i) {

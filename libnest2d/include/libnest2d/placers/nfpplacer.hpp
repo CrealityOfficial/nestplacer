@@ -90,7 +90,7 @@ template<class RawShape>
 struct NfpPConfig {
 
     using ItemGroup = _ItemGroup<RawShape>;
-
+    using Box = libnest2d::_Box<libnest2d::PointImpl>;
     enum class Alignment:int {
         CENTER=0,
         BOTTOM_LEFT,
@@ -184,6 +184,9 @@ struct NfpPConfig {
     {
         return (int)new_starting_point;
     }
+    
+    ///a function to control the bin.
+    std::function<Box(const int&)> box_function;
 
     /**
      * @brief before_packing Callback that is called just before a search for
@@ -1797,15 +1800,8 @@ private:
         if (!items_.empty()) {
             nfp::Shapes<RawShape> m;
             m.reserve(items_.size());
-            auto dx = bbin.width();
-            auto dy = bbin.height();
-            auto& pmin = bbin.minCorner();
-            auto& pmax = bbin.maxCorner();
             for (Item& item : items_) {
-                int id = item.binId();
-                setX(pmin, 0), setY(pmin, id * dy);
-                setX(pmax, dx), setY(pmax, (id + 1) * dy);
-                item.translate({ 0,dy * id });
+                item.translate(trans_);
                 m.emplace_back(item.transformedShape());
             }
 
@@ -1854,13 +1850,13 @@ private:
             for (Item& item : items_) item.translate(d);
         }
         if (!unpacked_items_.empty()) {
-            br_ = { getX(bbin.maxCorner()), getY(bbin.minCorner()) };
+            bl_ = bbin.minCorner();
             for (Item& item : unpacked_items_) {
                 auto&& bb = item.boundingBox();
-                Vertex ci = bb.minCorner();
-                auto d = br_ - ci;
+                Vertex ci = { getX(bb.maxCorner()), getY(bb.minCorner()) };
+                Vertex d = bl_ - ci;
                 item.translate(d);
-                br_.X += bb.width();
+                bl_.X -= bb.width();
             }
         }
     }

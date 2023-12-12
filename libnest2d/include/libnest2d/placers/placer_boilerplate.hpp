@@ -102,6 +102,11 @@ public:
         }
         farea_valid_ = false;
     }
+    
+    void load_translate(const Vertex& tr)
+    {
+        trans_ = tr;
+    }
 
     inline const ItemGroup& getItems() const { return items_; }
 
@@ -127,8 +132,9 @@ public:
     }
 
 protected:
-    Vertex br_;
+    Vertex bl_;
     BinType bin_;
+    Vertex trans_;
     ItemGroup items_;
     ItemGroup unpacked_items_;
     Cfg config_;

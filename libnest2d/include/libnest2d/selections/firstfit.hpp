@@ -86,6 +86,7 @@ public:
         this->template remove_unpackable_items<Placer>(store_, bin, pconfig);
 
         auto it = store_.begin();
+        const auto& cb = bin.minCorner();
         while(it != store_.end() && !cancelled()) {
             bool was_packed = false;
             size_t j = 0;
@@ -106,7 +107,10 @@ public:
                     } else {
                         pconfig.setAlignment(pconfig.getNewAlignment());
                         pconfig.setStartPoint(pconfig.getNewStartPoint());
+                        bin = pconfig.box_function(placers.size());
+                        const auto& c2 = bin.minCorner();
                         placers.emplace_back(bin, pconfig);
+                        placers.back().load_translate(c2 - cb);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
                     }
