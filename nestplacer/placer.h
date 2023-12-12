@@ -69,7 +69,7 @@ namespace nestplacer
 	/// <param name="results"></param>  result clone positions
 	/// <returns></returns>
 	NESTPLACER_API void extendFill(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results);
+		const PlacerParameter& parameter, const trimesh::box3& binBox, std::vector<PlacerResultRT>& results);
 
 	class NESTPLACER_API YDefaultBinExtendStrategy : public BinExtendStrategy
 	{
