@@ -164,6 +164,7 @@ namespace nestplacer
         //return transformed items.
         for (size_t i = 0; i < inputs.size(); ++i) {
             const libnest2d::Item& item = inputs.at(i);
+            if (item.binId() < 0) continue;
             PlacerResultRT pr;
             pr.rt.x = INT2UM(item.translation().X);
             pr.rt.y = INT2UM(item.translation().Y);
