@@ -91,6 +91,8 @@ struct NfpPConfig {
 
     using ItemGroup = _ItemGroup<RawShape>;
     using Box = libnest2d::_Box<libnest2d::PointImpl>;
+    using Coord = libnest2d::TCoord<TPoint<RawShape>>;
+
     enum class Alignment:int {
         CENTER=0,
         BOTTOM_LEFT,
@@ -185,6 +187,8 @@ struct NfpPConfig {
         return (int)new_starting_point;
     }
     
+    Coord binItemGap = 0;
+
     ///a function to control the bin.
     std::function<Box(const int&)> box_function;
 

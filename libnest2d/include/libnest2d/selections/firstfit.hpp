@@ -100,6 +100,20 @@ public:
 
                 if(!was_packed) {
                     if (placers.empty()) {
+                        const auto& d = pconfig.binItemGap;
+                        const auto& w = bin.width();
+                        const auto& h = bin.height();
+                        if (d < std::min(w, h) / 2.0) {
+                            auto& p1 = bin.minCorner();
+                            auto& p2 = bin.maxCorner();
+                            const auto& center = bin.center();
+                            const auto& x0 = getX(center);
+                            const auto& y0 = getY(center);
+                            setX(p1, x0 - w / 2.0 + d);
+                            setY(p1, y0 - h / 2.0 + d);
+                            setX(p2, x0 + w / 2.0 - d);
+                            setY(p2, y0 + h / 2.0 - d);
+                        }
                         placers.emplace_back(bin);
                         placers.back().configure(pconfig);
                         packed_bins_.emplace_back();
@@ -109,6 +123,20 @@ public:
                         pconfig.setStartPoint(pconfig.getNewStartPoint());
                         bin = pconfig.box_function(placers.size());
                         const auto& c2 = bin.minCorner();
+                        const auto& d = pconfig.binItemGap;
+                        const auto& w = bin.width();
+                        const auto& h = bin.height();
+                        if (d < std::min(w, h) / 2.0) {
+                            auto& p1 = bin.minCorner();
+                            auto& p2 = bin.maxCorner();
+                            const auto& center = bin.center();
+                            const auto& x0 = getX(center);
+                            const auto& y0 = getY(center);
+                            setX(p1, x0 - w / 2.0 + d);
+                            setY(p1, y0 - h / 2.0 + d);
+                            setX(p2, x0 + w / 2.0 - d);
+                            setY(p2, y0 + h / 2.0 - d);
+                        }
                         placers.emplace_back(bin, pconfig);
                         placers.back().load_translate(c2 - cb);
                         packed_bins_.emplace_back();

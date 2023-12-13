@@ -34,6 +34,21 @@ protected:
         auto it = c.begin();
         Placer placer{ bin };
         ItemGroup items;
+        const auto& d = pcfg.binItemGap;
+        const auto& w = bin.width();
+        const auto& h = bin.height();
+        Bin cbin{ bin };
+        if (d < std::min(w, h) / 2.0) {
+            auto& p1 = cbin.minCorner();
+            auto& p2 = cbin.maxCorner();
+            const auto& center = cbin.center();
+            const auto& x0 = getX(center);
+            const auto& y0 = getY(center);
+            setX(p1, x0 - w / 2.0 + d);
+            setY(p1, y0 - h / 2.0 + d);
+            setX(p2, x0 + w / 2.0 - d);
+            setY(p2, y0 + h / 2.0 - d);
+        }
         while (it != c.end() && !stopcond_()) {
 
             // WARNING: The copy of itm needs to be created before Placer.
@@ -43,7 +58,7 @@ protected:
             const Item& itm = *it;
             Item cpy{itm};
 
-            Placer p{bin};
+            Placer p{cbin};
             p.configure(pcfg);
             if (itm.area() <= 0 || !p.pack(cpy)) {
                 static_cast<Item&>(*it).binId(BIN_ID_UNSET);

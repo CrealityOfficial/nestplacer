@@ -205,7 +205,6 @@ namespace nestplacer
                 Clipper3r::Path path;
                 convert(models.at(i), path);
 
-                double a = Clipper3r::Area(path);
                 if (Clipper3r::Orientation(path))
                     Clipper3r::ReversePath(path);
 
