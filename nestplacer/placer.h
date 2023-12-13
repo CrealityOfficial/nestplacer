@@ -2,7 +2,7 @@
 #define NESTPLACER_PLACER_1702004306712_H
 #include "nestplacer/export.h"
 #include "ccglobal/tracer.h"
-
+#include <memory>
 #include "trimesh2/Box.h"
 #include <functional>
 #include <vector>

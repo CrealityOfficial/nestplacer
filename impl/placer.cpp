@@ -48,19 +48,18 @@ namespace nestplacer
 	{
 		std::vector<libnest2d::Item> inputs;
         inputs.reserve(fixed.size() + actives.size());
-        for (PlacerItem* item : fixed) {
+        for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
-            item->polygon(geometry);
+            pitem->polygon(geometry);
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
             item.markAsFixedInBin(0);
             inputs.emplace_back(item);
         }
-		for (PlacerItem* item : actives)
-		{
+		for (PlacerItem* pitem : actives){
 			nestplacer::PlacerItemGeometry geometry;
-			item->polygon(geometry);
+			pitem->polygon(geometry);
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
@@ -126,9 +125,9 @@ namespace nestplacer
                 inputs.emplace_back(item);
             }
         }
-        for (PlacerItem* item : fixed) {
+        for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
-            item->polygon(geometry);
+            pitem->polygon(geometry);
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
