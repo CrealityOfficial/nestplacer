@@ -142,8 +142,11 @@ protected:
 
 
 #define DECLARE_PLACER(Base) \
+using Base::bl_;                  \
 using Base::bin_;                 \
+using Base::trans_;               \
 using Base::items_;               \
+using Base::unpacked_items_;      \
 using Base::config_;              \
 public:                           \
 using typename Base::ShapeType;   \
