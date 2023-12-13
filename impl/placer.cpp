@@ -105,7 +105,7 @@ namespace nestplacer
 
 	}
 
-	void extendFill(const std::vector<PlacerItem*>& fixed, std::shared_ptr<PlacerItem>&active,
+	void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active,
 		const PlacerParameter& parameter, const trimesh::box3& binBox, std::vector<PlacerResultRT>& results)
 	{
         std::vector<libnest2d::Item> inputs;
