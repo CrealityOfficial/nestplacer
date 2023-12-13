@@ -118,7 +118,7 @@ public:
                         placers.back().configure(pconfig);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
-                    } else {
+                    } else if (pconfig.needNewBin) {
                         pconfig.setAlignment(pconfig.getNewAlignment());
                         pconfig.setStartPoint(pconfig.getNewStartPoint());
                         bin = pconfig.box_function(placers.size());
@@ -141,6 +141,8 @@ public:
                         placers.back().load_translate(c2 - cb);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
+                    } else {
+                        break;
                     }
                 }
             }

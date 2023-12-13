@@ -189,6 +189,8 @@ struct NfpPConfig {
     
     Coord binItemGap = 0;
 
+    bool needNewBin = false;
+
     ///a function to control the bin.
     std::function<Box(const int&)> box_function;
 

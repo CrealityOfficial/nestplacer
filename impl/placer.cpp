@@ -23,7 +23,7 @@ namespace nestplacer
         return binBox;
     }
 
-    void convertItem(const PlacerItemGeometry& geometry, libnest2d::Item& item)
+    void convertPolygon(const PlacerItemGeometry& geometry, Clipper3r::Polygon& poly)
     {
         Clipper3r::Path contour;
         contour.reserve(geometry.outline.size());
@@ -39,7 +39,8 @@ namespace nestplacer
                 holes.back().emplace_back(convertPoint(p));
             }
         }
-        item = libnest2d::Item(contour, holes);
+        poly.Contour.swap(contour);
+        poly.Holes.swap(holes);
     }
 
 	void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
@@ -50,8 +51,9 @@ namespace nestplacer
         for (PlacerItem* item : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             item->polygon(geometry);
-            libnest2d::Item item{};
-            convertItem(geometry, item);
+            Clipper3r::Polygon sh;
+            convertPolygon(geometry, sh);
+            libnest2d::Item item(sh);
             item.markAsFixedInBin(0);
             inputs.emplace_back(item);
         }
@@ -59,8 +61,9 @@ namespace nestplacer
 		{
 			nestplacer::PlacerItemGeometry geometry;
 			item->polygon(geometry);
-            libnest2d::Item item{};
-            convertItem(geometry, item);
+            Clipper3r::Polygon sh;
+            convertPolygon(geometry, sh);
+            libnest2d::Item item(sh);
             inputs.emplace_back(item);
 		}
         libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
@@ -77,7 +80,8 @@ namespace nestplacer
             return box;
         };
         config.placer_config.box_function = box_func;
-        
+        config.placer_config.needNewBin = true;
+
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
             int step = (int)(360.0f / parameter.rotateAngle);
@@ -111,8 +115,9 @@ namespace nestplacer
             libnest2d::Coord binArea = box.area();
             nestplacer::PlacerItemGeometry geometry;
             active->polygon(geometry);
-            libnest2d::Item item{};
-            convertItem(geometry, item);
+            Clipper3r::Polygon sh;
+            convertPolygon(geometry, sh);
+            libnest2d::Item item(sh);
             const auto& contour = item.rawShape().Contour;
             libnest2d::Coord itemArea = Clipper3r::Area(contour);
             int nums = std::floor(binArea / std::fabs(itemArea));
@@ -124,8 +129,9 @@ namespace nestplacer
         for (PlacerItem* item : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             item->polygon(geometry);
-            libnest2d::Item item{};
-            convertItem(geometry, item);
+            Clipper3r::Polygon sh;
+            convertPolygon(geometry, sh);
+            libnest2d::Item item(sh);
             item.markAsFixedInBin(0);
             inputs.emplace_back(item);
         }
