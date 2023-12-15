@@ -1846,8 +1846,6 @@ private:
             }
             default:
             {
-                ci = bb.center();
-                cb = bbin.center();
                 break;
             }; // DONT_ALIGN
             }
@@ -1900,8 +1898,6 @@ private:
             break;
         }
         default: {
-            ci = bb.center();
-            cb = bbin.center();
             break;
         };
         }

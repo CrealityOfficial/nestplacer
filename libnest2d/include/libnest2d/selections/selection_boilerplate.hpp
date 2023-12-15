@@ -38,7 +38,7 @@ protected:
         const auto& w = bin.width();
         const auto& h = bin.height();
         Bin cbin{ bin };
-        if (d < std::min(w, h) / 2.0) {
+        if (d < std::min(w, h) / 2.0 && packed_bins_.empty()) {
             auto& p1 = cbin.minCorner();
             auto& p2 = cbin.maxCorner();
             const auto& center = cbin.center();

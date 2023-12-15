@@ -17,7 +17,7 @@ __assert_target(nlopt_static)
 __assert_target(boost_header)
 
 set(LIBS clipper3r nlopt_static boost_header)
-set(ILIBS trimesh2)
+set(ILIBS trimesh2 msbase)
 set(DEFS)
 
 include(libnest2d/libnest2d.cmake)

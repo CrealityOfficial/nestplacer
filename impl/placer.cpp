@@ -1,3 +1,4 @@
+#include "msbase/utils/trimeshserial.h"
 #include "nestplacer/placer.h"
 #include "data.h"
 #include "debug.h"
@@ -7,6 +8,86 @@
 
 namespace nestplacer
 {
+    class NestInput : public ccglobal::Serializeable {
+    public:
+        std::vector<nestplacer::PlacerItemGeometry> fixed;
+        std::vector<nestplacer::PlacerItemGeometry> actives;
+        PlacerParameter param;
+        trimesh::box3 box;
+
+        NestInput()
+        {
+
+        }
+        ~NestInput()
+        {
+
+        }
+
+        int version() override
+        {
+            return 0;
+        }
+        bool save(std::fstream& out, ccglobal::Tracer* tracer) override
+        {
+            for (const auto& fitem : fixed) {
+                msbase::savePoly(out, fitem.outline);
+                msbase::savePolys(out, fitem.holes);
+            }
+            for (const auto& aitem : actives) {
+                msbase::savePoly(out, aitem.outline);
+                msbase::savePolys(out, aitem.holes);
+            }
+            ccglobal::cxndSaveT(out, box.min);
+            ccglobal::cxndSaveT(out, box.max);
+
+            ccglobal::cxndSaveT(out, param.itemGap);
+            ccglobal::cxndSaveT(out, param.binItemGap);
+            ccglobal::cxndSaveT(out, param.rotate);
+            ccglobal::cxndSaveT(out, param.rotateAngle);
+            ccglobal::cxndSaveT(out, param.needAlign);
+            ccglobal::cxndSaveT(out, param.align_mode);
+            
+            return true;
+        }
+
+        bool load(std::fstream& in, int ver, ccglobal::Tracer* tracer) override
+        {
+            if (ver == 0) {
+                msbase::CXNDGeometrys geometrys;
+                msbase::loadGeometrys(in, geometrys);
+                fixed.reserve(geometrys.size());
+                for (auto& geometry : geometrys) {
+                    PlacerItemGeometry pitem;
+                    pitem.outline.swap(geometry.contour);
+                    pitem.holes.swap(geometry.holes);
+                    fixed.emplace_back(pitem);
+                }
+
+                geometrys.clear();
+                msbase::loadGeometrys(in, geometrys);
+                actives.reserve(geometrys.size());
+                for (auto& geometry : geometrys) {
+                    PlacerItemGeometry pitem;
+                    pitem.outline.swap(geometry.contour);
+                    pitem.holes.swap(geometry.holes);
+                    actives.emplace_back(pitem);
+                }
+                ccglobal::cxndLoadT(in, box.min);
+                ccglobal::cxndLoadT(in, box.max);
+
+                ccglobal::cxndLoadT(in, param.itemGap);
+                ccglobal::cxndLoadT(in, param.binItemGap);
+                ccglobal::cxndLoadT(in, param.rotate);
+                ccglobal::cxndLoadT(in, param.rotateAngle);
+                ccglobal::cxndLoadT(in, param.needAlign);
+                ccglobal::cxndLoadT(in, param.align_mode);
+                return true;
+            }
+            return false;
+        }
+    };
+
     Clipper3r::IntPoint convertPoint(const trimesh::vec3& point)
     {
         return Clipper3r::IntPoint(UM2INT(point.x), UM2INT(point.y));
@@ -43,9 +124,94 @@ namespace nestplacer
         poly.Holes.swap(holes);
     }
 
-	void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
+    PItem::PItem(const nestplacer::PlacerItemGeometry& geometry)
+    {
+        contour = geometry.outline;
+        //holes = geometry.holes;
+    }
+
+    PItem::~PItem()
+    {
+
+    }
+
+    void PItem::polygon(nestplacer::PlacerItemGeometry& geometry)
+    {
+        geometry.holes.clear();
+        geometry.outline.swap(geometry.outline);
+    }
+
+
+    void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer)
+    {
+        NestInput input;
+        if (!ccglobal::cxndLoad(input, fileName, tracer)) {
+            LOGE("placeFromFile load error [%s]", fileName.c_str());
+            return;
+        }
+        std::vector<PlacerItem*> fixed, actives;
+        fixed.reserve(input.fixed.size());
+        actives.reserve(input.actives.size());
+        for (const auto& fix : input.fixed) {
+            PItem pitem(fix);
+            fixed.emplace_back(&pitem);
+        }
+        for (const auto& active : input.actives) {
+            PItem pitem(active);
+            actives.emplace_back(&pitem);
+        }
+        PlacerParameter param = input.param;
+        return place(fixed, actives, param, results, binExtendStrategy);
+    }
+
+    void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy,  ccglobal::Tracer* tracer)
+    {
+        NestInput input;
+        if (!ccglobal::cxndLoad(input, fileName, tracer)) {
+            LOGE("placeFromFile load error [%s]", fileName.c_str());
+            return;
+        }
+        std::vector<PlacerItem*> fixed, actives;
+        fixed.reserve(input.fixed.size());
+        actives.reserve(input.actives.size());
+        for (const auto& fix : input.fixed) {
+            PItem pitem(fix);
+            fixed.emplace_back(&pitem);
+        }
+        for (const auto& active : input.actives) {
+            PItem pitem(active);
+            actives.emplace_back(&pitem);
+        }
+        PlacerItem* active = actives.front();
+        PlacerParameter param = input.param;
+        trimesh::box3 box = input.box;
+        return extendFill(fixed, active, param, box, results);
+    }
+
+    void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
 		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy)
 	{
+        if (!parameter.fileName.empty() && (!fixed.empty() || !actives.empty())) {
+            NestInput input;
+            std::vector<nestplacer::PlacerItemGeometry> pfixed;
+            std::vector<nestplacer::PlacerItemGeometry> pactives;
+            pfixed.reserve(fixed.size());
+            for (PlacerItem* pitem : fixed) {
+                nestplacer::PlacerItemGeometry geometry;
+                pitem->polygon(geometry);
+                pfixed.emplace_back(geometry);
+            }
+            pactives.reserve(actives.size());
+            for (PlacerItem* pitem : actives) {
+                nestplacer::PlacerItemGeometry geometry;
+                pitem->polygon(geometry);
+                pactives.emplace_back(geometry);
+            }
+            input.fixed.swap(pfixed);
+            input.actives.swap(pactives);
+            input.param = parameter;
+            ccglobal::cxndSave(input, parameter.fileName,parameter.tracer);
+        }
 		std::vector<libnest2d::Item> inputs;
         inputs.reserve(fixed.size() + actives.size());
         for (PlacerItem* pitem : fixed) {
@@ -70,8 +236,12 @@ namespace nestplacer
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
-        config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
+        if (parameter.needAlign) {
+            config.placer_config.setAlignment(parameter.align_mode);
+        } else {
+            config.placer_config.alignment= libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        }
 
         auto box_func = [&binExtendStrategy](const int& index) {
             trimesh::box3 binBox = binExtendStrategy.bounding(index);
@@ -93,6 +263,8 @@ namespace nestplacer
         size_t bins = nest(inputs, box_func(0), itemGap, config, ctl);
 
         //return transformed items.
+        std::vector<PlacerResultRT> activeRts;
+        activeRts.reserve(actives.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
             const libnest2d::Item& item = inputs.at(i);
             PlacerResultRT pr;
@@ -100,17 +272,41 @@ namespace nestplacer
             pr.rt.y = INT2UM(item.translation().Y);
             pr.rt.z = item.rotation().toDegrees();
             pr.binIndex = item.binId();
-            results.emplace_back(pr);
+            if (item.isFixed()) results.emplace_back(pr);
+            else activeRts.emplace_back(pr);
         }
-
+        results.insert(results.end(), activeRts.begin(), activeRts.end());
 	}
 
 	void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active,
 		const PlacerParameter& parameter, const trimesh::box3& binBox, std::vector<PlacerResultRT>& results)
 	{
+        if (!parameter.fileName.empty() && (!fixed.empty() || !active)) {
+            NestInput input;
+            std::vector<nestplacer::PlacerItemGeometry> pfixed;
+            std::vector<nestplacer::PlacerItemGeometry> pactives;
+            pfixed.reserve(fixed.size());
+            for (PlacerItem* pitem : fixed) {
+                nestplacer::PlacerItemGeometry geometry;
+                pitem->polygon(geometry);
+                pfixed.emplace_back(geometry);
+            }
+
+            {
+                nestplacer::PlacerItemGeometry geometry;
+                active->polygon(geometry);
+                pactives.emplace_back(geometry);
+            }
+            input.fixed.swap(pfixed);
+            input.actives.swap(pactives);
+            input.param = parameter;
+            input.box = binBox;
+            ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
+        }
         std::vector<libnest2d::Item> inputs;
         libnest2d::Box box = convertBox(binBox);
         {
+            if (!active) return;
             libnest2d::Coord binArea = box.area();
             nestplacer::PlacerItemGeometry geometry;
             active->polygon(geometry);
@@ -139,8 +335,12 @@ namespace nestplacer
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
-        config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
+        if (parameter.needAlign) {
+            config.placer_config.setAlignment(parameter.align_mode);
+        } else {
+            config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+        }
 
         auto box_func = [&binBox](const int& index) {
             libnest2d::Box box;
@@ -161,6 +361,8 @@ namespace nestplacer
         size_t bins = nest(inputs, box_func(0), itemGap, config, ctl);
 
         //return transformed items.
+        std::vector<PlacerResultRT> activeRts;
+        activeRts.reserve(inputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
             const libnest2d::Item& item = inputs.at(i);
             if (item.binId() < 0) continue;
@@ -169,8 +371,10 @@ namespace nestplacer
             pr.rt.y = INT2UM(item.translation().Y);
             pr.rt.z = item.rotation().toDegrees();
             pr.binIndex = item.binId();
-            results.emplace_back(pr);
+            if (item.isFixed()) results.emplace_back(pr);
+            else activeRts.emplace_back(pr);
         }
+        results.insert(results.end(), activeRts.begin(), activeRts.end());
 	}
 
 	YDefaultBinExtendStrategy::YDefaultBinExtendStrategy(const trimesh::box3& box, float dy)

@@ -28,12 +28,25 @@ namespace nestplacer
 		virtual void polygon(PlacerItemGeometry& geometry) = 0;  // loop polygon
 	};
 
+    class PItem : public nestplacer::PlacerItem {
+    public:
+        PItem(const PlacerItemGeometry& geometry);
+        virtual ~PItem();
+
+        void polygon(nestplacer::PlacerItemGeometry& geometry) override;
+
+        std::vector<trimesh::vec3> contour;
+        //std::vector<std::vector<trimesh::vec3>> holes;
+    };
+
 	struct PlacerParameter
 	{
 		float itemGap = 1.0f;
 		float binItemGap = 1.0f;
 		bool rotate = false;
 		float rotateAngle = 45.0f;
+        bool needAlign = false;
+        int align_mode = 0;
 		ccglobal::Tracer* tracer = nullptr;
 
 		//debug
@@ -48,6 +61,8 @@ namespace nestplacer
 		virtual trimesh::box3 bounding(int index) const = 0;
 	};
 
+    NESTPLACER_API void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
+    NESTPLACER_API void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
 	/// <summary>
 	/// 
 	/// </summary>
