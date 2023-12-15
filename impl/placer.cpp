@@ -30,14 +30,25 @@ namespace nestplacer
         }
         bool save(std::fstream& out, ccglobal::Tracer* tracer) override
         {
-            for (const auto& fitem : fixed) {
-                msbase::savePoly(out, fitem.outline);
-                msbase::savePolys(out, fitem.holes);
+            msbase::CXNDGeometrys fgeometrys;
+            fgeometrys.reserve(fixed.size());
+            for (auto& fitem : fixed) {
+                msbase::CXNDGeometry geo;
+                geo.contour.swap(fitem.outline);
+                geo.holes.swap(fitem.holes);
+                fgeometrys.emplace_back(geo);
             }
-            for (const auto& aitem : actives) {
-                msbase::savePoly(out, aitem.outline);
-                msbase::savePolys(out, aitem.holes);
+            msbase::saveGeometrys(out, fgeometrys);
+
+            msbase::CXNDGeometrys ageometrys;
+            ageometrys.reserve(actives.size());
+            for (auto& aitem : actives) {
+                msbase::CXNDGeometry geo;
+                geo.contour.swap(aitem.outline);
+                geo.holes.swap(aitem.holes);
+                ageometrys.emplace_back(geo);
             }
+            msbase::saveGeometrys(out, ageometrys);
             ccglobal::cxndSaveT(out, box.min);
             ccglobal::cxndSaveT(out, box.max);
 
@@ -54,20 +65,20 @@ namespace nestplacer
         bool load(std::fstream& in, int ver, ccglobal::Tracer* tracer) override
         {
             if (ver == 0) {
-                msbase::CXNDGeometrys geometrys;
-                msbase::loadGeometrys(in, geometrys);
-                fixed.reserve(geometrys.size());
-                for (auto& geometry : geometrys) {
+                msbase::CXNDGeometrys fgeometrys;
+                msbase::loadGeometrys(in, fgeometrys);
+                fixed.reserve(fgeometrys.size());
+                for (auto& geometry : fgeometrys) {
                     PlacerItemGeometry pitem;
                     pitem.outline.swap(geometry.contour);
                     pitem.holes.swap(geometry.holes);
                     fixed.emplace_back(pitem);
                 }
 
-                geometrys.clear();
-                msbase::loadGeometrys(in, geometrys);
-                actives.reserve(geometrys.size());
-                for (auto& geometry : geometrys) {
+                msbase::CXNDGeometrys ageometrys;
+                msbase::loadGeometrys(in, ageometrys);
+                actives.reserve(ageometrys.size());
+                for (auto& geometry : ageometrys) {
                     PlacerItemGeometry pitem;
                     pitem.outline.swap(geometry.contour);
                     pitem.holes.swap(geometry.holes);
@@ -141,7 +152,6 @@ namespace nestplacer
         geometry.outline.swap(geometry.outline);
     }
 
-
     void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer)
     {
         NestInput input;
@@ -210,7 +220,7 @@ namespace nestplacer
             input.fixed.swap(pfixed);
             input.actives.swap(pactives);
             input.param = parameter;
-            ccglobal::cxndSave(input, parameter.fileName,parameter.tracer);
+            ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
         }
 		std::vector<libnest2d::Item> inputs;
         inputs.reserve(fixed.size() + actives.size());

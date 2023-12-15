@@ -32,7 +32,6 @@ namespace nestplacer
     public:
         PItem(const PlacerItemGeometry& geometry);
         virtual ~PItem();
-
         void polygon(nestplacer::PlacerItemGeometry& geometry) override;
 
         std::vector<trimesh::vec3> contour;
@@ -46,6 +45,12 @@ namespace nestplacer
 		bool rotate = false;
 		float rotateAngle = 45.0f;
         bool needAlign = false;
+        /*
+        @param align_mode:
+        0 - CENER, 1 - BOTTOM_LEFT, 2 - BOTTOM_RIGHT,
+        3 - TOP_LEFT, 4 - TOP_RIGHT, 5 -  DONT_ALIGN;
+        if is DONT_ALIGN, is same with not need needAlign.
+        */
         int align_mode = 0;
 		ccglobal::Tracer* tracer = nullptr;
 
