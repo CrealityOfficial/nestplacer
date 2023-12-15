@@ -135,6 +135,16 @@ namespace nestplacer
         poly.Holes.swap(holes);
     }
 
+    class PItem : public nestplacer::PlacerItem {
+    public:
+        PItem(const PlacerItemGeometry& geometry);
+        virtual ~PItem();
+        void polygon(nestplacer::PlacerItemGeometry& geometry) override;
+
+        std::vector<trimesh::vec3> contour;
+        //std::vector<std::vector<trimesh::vec3>> holes;
+    };
+
     PItem::PItem(const nestplacer::PlacerItemGeometry& geometry)
     {
         contour = geometry.outline;
@@ -178,7 +188,7 @@ namespace nestplacer
     {
         NestInput input;
         if (!ccglobal::cxndLoad(input, fileName, tracer)) {
-            LOGE("placeFromFile load error [%s]", fileName.c_str());
+            LOGE("extendFillFromFile load error [%s]", fileName.c_str());
             return;
         }
         std::vector<PlacerItem*> fixed, actives;
@@ -222,6 +232,7 @@ namespace nestplacer
             input.param = parameter;
             ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
         }
+
 		std::vector<libnest2d::Item> inputs;
         inputs.reserve(fixed.size() + actives.size());
         for (PlacerItem* pitem : fixed) {
@@ -313,8 +324,19 @@ namespace nestplacer
             input.box = binBox;
             ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
         }
+
         std::vector<libnest2d::Item> inputs;
         libnest2d::Box box = convertBox(binBox);
+        inputs.reserve(fixed.size());
+        for (PlacerItem* pitem : fixed) {
+            nestplacer::PlacerItemGeometry geometry;
+            pitem->polygon(geometry);
+            Clipper3r::Polygon sh;
+            convertPolygon(geometry, sh);
+            libnest2d::Item item(sh);
+            item.markAsFixedInBin(0);
+            inputs.emplace_back(item);
+        }
         {
             if (!active) return;
             libnest2d::Coord binArea = box.area();
@@ -330,15 +352,6 @@ namespace nestplacer
             for (int i = 0; i < nums; ++i) {
                 inputs.emplace_back(item);
             }
-        }
-        for (PlacerItem* pitem : fixed) {
-            nestplacer::PlacerItemGeometry geometry;
-            pitem->polygon(geometry);
-            Clipper3r::Polygon sh;
-            convertPolygon(geometry, sh);
-            libnest2d::Item item(sh);
-            item.markAsFixedInBin(0);
-            inputs.emplace_back(item);
         }
         libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
         libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);

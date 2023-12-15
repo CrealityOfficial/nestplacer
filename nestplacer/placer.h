@@ -28,16 +28,6 @@ namespace nestplacer
 		virtual void polygon(PlacerItemGeometry& geometry) = 0;  // loop polygon
 	};
 
-    class PItem : public nestplacer::PlacerItem {
-    public:
-        PItem(const PlacerItemGeometry& geometry);
-        virtual ~PItem();
-        void polygon(nestplacer::PlacerItemGeometry& geometry) override;
-
-        std::vector<trimesh::vec3> contour;
-        //std::vector<std::vector<trimesh::vec3>> holes;
-    };
-
 	struct PlacerParameter
 	{
 		float itemGap = 1.0f;
