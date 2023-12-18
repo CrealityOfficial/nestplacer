@@ -6,6 +6,7 @@ __files_group(${CMAKE_CURRENT_SOURCE_DIR}/impl/ IMPLS)
 list(APPEND SRCS ${IMPLS})
 __cc_find(trimesh2)
 __assert_target(trimesh2)
+__cc_find(msbase)
 
 __cc_find(tbb)
 __cc_find(clipper3r)
@@ -16,8 +17,8 @@ __assert_target(clipper3r)
 __assert_target(nlopt_static)
 __assert_target(boost_header)
 
-set(LIBS clipper3r nlopt_static boost_header)
-set(ILIBS trimesh2 msbase)
+set(LIBS clipper3r nlopt_static boost_header msbase)
+set(ILIBS trimesh2)
 set(DEFS)
 
 include(libnest2d/libnest2d.cmake)

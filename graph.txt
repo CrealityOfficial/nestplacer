@@ -1,4 +1,4 @@
-trimesh2/0.0.3
+msbase/0.0.2
 boost/0.0.2
 clipper3r/0.0.2
 tbb/0.0.2
