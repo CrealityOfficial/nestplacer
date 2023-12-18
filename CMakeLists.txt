@@ -2,8 +2,9 @@ set(CMAKE_CXX_STANDARD 14)
 
 __files_group(${CMAKE_CURRENT_SOURCE_DIR}/nestplacer/ SRCS)
 __files_group(${CMAKE_CURRENT_SOURCE_DIR}/impl/ IMPLS)
+__files_group(${CMAKE_CURRENT_SOURCE_DIR}/svg/ SVGS)
 
-list(APPEND SRCS ${IMPLS})
+list(APPEND SRCS ${IMPLS} ${SVGS})
 __cc_find(trimesh2)
 __assert_target(trimesh2)
 __cc_find(msbase)
