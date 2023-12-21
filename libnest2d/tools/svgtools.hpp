@@ -166,6 +166,9 @@ public:
 
     void saveItem(const Item& item, const std::string& filename, int color = 5, bool bWritePoints = false)
     {
+        std::string filepath = "D:/test";
+        std::ifstream file(filepath);
+        if (!file.good()) return;
         std::string svgFile = filename + ".svg";
         svg::AABB aabb = getAABB(item);
         svg::SVG svg(svgFile, aabb);
@@ -188,6 +191,9 @@ public:
 
     void saveItems(const SVGData& datas, const std::string& filename, bool bWritePoints = false)
     {
+        std::string filepath = "D:/test";
+        std::ifstream file(filepath);
+        if (!file.good()) return;
         std::string svgFile = filename + ".svg";
         svg::Polygons binpolys;
         svg::AABB aabb;
