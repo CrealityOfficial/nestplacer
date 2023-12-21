@@ -13,7 +13,6 @@ namespace nestplacer
         std::vector<nestplacer::PlacerItemGeometry> fixed;
         std::vector<nestplacer::PlacerItemGeometry> actives;
         PlacerParameter param;
-        trimesh::box3 box;
 
         NestInput()
         {
@@ -49,8 +48,8 @@ namespace nestplacer
                 ageometrys.emplace_back(geo);
             }
             msbase::saveGeometrys(out, ageometrys);
-            ccglobal::cxndSaveT(out, box.min);
-            ccglobal::cxndSaveT(out, box.max);
+            ccglobal::cxndSaveT(out, param.box.min);
+            ccglobal::cxndSaveT(out, param.box.max);
 
             ccglobal::cxndSaveT(out, param.itemGap);
             ccglobal::cxndSaveT(out, param.binItemGap);
@@ -84,8 +83,8 @@ namespace nestplacer
                     pitem.holes.swap(geometry.holes);
                     actives.emplace_back(pitem);
                 }
-                ccglobal::cxndLoadT(in, box.min);
-                ccglobal::cxndLoadT(in, box.max);
+                ccglobal::cxndLoadT(in, param.box.min);
+                ccglobal::cxndLoadT(in, param.box.max);
 
                 ccglobal::cxndLoadT(in, param.itemGap);
                 ccglobal::cxndLoadT(in, param.binItemGap);
@@ -142,13 +141,13 @@ namespace nestplacer
         void polygon(nestplacer::PlacerItemGeometry& geometry) override;
 
         std::vector<trimesh::vec3> contour;
-        //std::vector<std::vector<trimesh::vec3>> holes;
+        std::vector<std::vector<trimesh::vec3>> holes;
     };
 
     PItem::PItem(const nestplacer::PlacerItemGeometry& geometry)
     {
         contour = geometry.outline;
-        //holes = geometry.holes;
+        holes = geometry.holes;
     }
 
     PItem::~PItem()
@@ -159,16 +158,17 @@ namespace nestplacer
     void PItem::polygon(nestplacer::PlacerItemGeometry& geometry)
     {
         geometry.outline = contour;
-        //geometry.holes = holes;
+        geometry.holes = holes;
     }
 
     void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter)
     {
         NestInput input;
         if (!ccglobal::cxndLoad(input, fileName, nullptr)) {
-            LOGE("load data from file load error [%s]", fileName.c_str());
+            LOGE("load data from file error [%s]", fileName.c_str());
             return;
         }
+        fixed.clear(), actives.clear();
         fixed.reserve(input.fixed.size());
         actives.reserve(input.actives.size());
         for (const auto& fix : input.fixed) {
@@ -208,7 +208,7 @@ namespace nestplacer
     {
         NestInput input;
         if (!ccglobal::cxndLoad(input, fileName, tracer)) {
-            LOGE("extendFillFromFile load error [%s]", fileName.c_str());
+            LOGE("extendFillFromFile error [%s]", fileName.c_str());
             return;
         }
         std::vector<PlacerItem*> fixed, actives;
@@ -224,7 +224,6 @@ namespace nestplacer
         }
         PlacerItem* active = actives.front();
         PlacerParameter param = input.param;
-        trimesh::box3 box = input.box;
         return extendFill(fixed, active, param, results);
     }
 
@@ -294,7 +293,7 @@ namespace nestplacer
 
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
-            float angle = parameter.rotateAngle;
+            int angle = parameter.rotateAngle;
             config.placer_config.rotations.clear();
             if (angle >= 5) {
                 int step = (int)(360.0f / angle);
@@ -351,7 +350,6 @@ namespace nestplacer
             input.fixed.swap(pfixed);
             input.actives.swap(pactives);
             input.param = parameter;
-            input.box = parameter.box;
             ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
         }
 
@@ -405,7 +403,7 @@ namespace nestplacer
 
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
-            float angle = parameter.rotateAngle;
+            int angle = parameter.rotateAngle;
             config.placer_config.rotations.clear();
             if (angle >= 5) {
                 int step = (int)(360.0f / angle);

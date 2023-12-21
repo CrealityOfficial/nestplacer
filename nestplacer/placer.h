@@ -34,14 +34,15 @@ namespace nestplacer
 		float binItemGap = 1.0f;
 		bool rotate = false;
 		float rotateAngle = 30.0f;
-        bool needAlign = false;
         /*
         @param align_mode:
         0 - CENER, 1 - BOTTOM_LEFT, 2 - BOTTOM_RIGHT,
         3 - TOP_LEFT, 4 - TOP_RIGHT, 5 -  DONT_ALIGN;
-        if is DONT_ALIGN, is same with not need needAlign.
+        if is DONT_ALIGN, is same with no needAlign.
         */
+        bool needAlign = false;
         int align_mode = 0;
+
         trimesh::box3 box;
 		ccglobal::Tracer* tracer = nullptr;
 
