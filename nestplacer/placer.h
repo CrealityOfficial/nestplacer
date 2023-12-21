@@ -33,7 +33,7 @@ namespace nestplacer
 		float itemGap = 1.0f;
 		float binItemGap = 1.0f;
 		bool rotate = false;
-		float rotateAngle = 45.0f;
+		float rotateAngle = 30.0f;
         bool needAlign = false;
         /*
         @param align_mode:
@@ -42,6 +42,7 @@ namespace nestplacer
         if is DONT_ALIGN, is same with not need needAlign.
         */
         int align_mode = 0;
+        trimesh::box3 box;
 		ccglobal::Tracer* tracer = nullptr;
 
 		//debug
@@ -55,7 +56,7 @@ namespace nestplacer
 
 		virtual trimesh::box3 bounding(int index) const = 0;
 	};
-
+    NESTPLACER_API void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter);
     NESTPLACER_API void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
     NESTPLACER_API void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
 	/// <summary>
@@ -79,7 +80,7 @@ namespace nestplacer
 	/// <param name="results"></param>  result clone positions
 	/// <returns></returns>
 	NESTPLACER_API void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active,
-		const PlacerParameter& parameter, const trimesh::box3& binBox, std::vector<PlacerResultRT>& results);
+		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results);
 
 	class NESTPLACER_API YDefaultBinExtendStrategy : public BinExtendStrategy
 	{

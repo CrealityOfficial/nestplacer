@@ -59,7 +59,7 @@ namespace svg
         size_t layer_nr = 1;
 
         bool output_is_html;
-
+        bool flipY = false;
     public:
         SVG(std::string filename, AABB aabb, Point canvas_size = Point(1024, 1024), ColorObject background = Color::NONE);
         SVG(std::string filename, AABB aabb, double scale, ColorObject background = Color::NONE);
@@ -71,7 +71,7 @@ namespace svg
          * get the scaling factor applied to convert real space to canvas space
          */
         double getScale() const;
-
+        void setFlipY(bool flip);
         void nextLayer();
 
         /*!

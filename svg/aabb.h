@@ -1,8 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CX_UTILS_AABB_H
-#define CX_UTILS_AABB_H
+#ifndef CX_AABB_H
+#define CX_AABB_H
 
 #include "svg/intpoint.h"
 

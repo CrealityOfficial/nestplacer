@@ -23,7 +23,7 @@
 #include "placer_boilerplate.hpp"
 
 // temporary
-//#include "../tools/svgtools.hpp"
+#include "../tools/svgtools.hpp"
 
 #ifdef USE_TBB
 #include <tbb/parallel_for.h>
@@ -190,7 +190,10 @@ struct NfpPConfig {
     Coord binItemGap = 0;
 
     bool needNewBin = false;
-
+    inline bool needAlign() const 
+    {
+        return !(alignment == Alignment::DONT_ALIGN);
+    }
     ///a function to control the bin.
     std::function<Box(const int&)> box_function;
 
@@ -673,6 +676,7 @@ private:
             if(correct)
                 correctNfpPosition(subnfp_r, sh, trsh);
             nfps[n] = subnfp_r.first;
+
         }, policy);
 
         return nfp::merge(nfps);
@@ -1506,7 +1510,17 @@ private:
                 placeOutsideOfBin(item);
 
                 nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
-
+#if _DEBUG
+                if (true) {
+                    writer::ItemWriter<RawShape> itemWriter;
+                    writer::ItemWriter<RawShape>::SVGData datas;
+                    datas.bin = bin_;
+                    datas.items = items_;
+                    datas.orsh = item;
+                    datas.nfps = nfps;
+                    itemWriter.saveItems(datas, "D://test/nfps");
+                }
+#endif
                 if (config_.debug_items) {
                     Shapes nfps1 = calcnfp(item, Lvl<MaxNfpLevel::value>(), false);
                     Shapes allItems;
@@ -1533,6 +1547,7 @@ private:
                 pile.reserve(items_.size() + 1);
                 // double pile_area = 0;
                 for (Item& mitem : items_) {
+                    if (!config_.needAlign() && !mitem.isInside(bin_)) continue;
                     pile.emplace_back(mitem.transformedShape());
                     // pile_area += mitem.area();
                 }
@@ -1602,6 +1617,13 @@ private:
                 };
 
                 auto alignment = config_.alignment;
+                
+                auto nfpPointCheck = [&binbb, &item, &iv, &startpos](const Vertex & p) {
+                    auto d = p - iv;
+                    d += startpos;
+                    item.translation(d);
+                    return item.isInside(binbb);
+                };
 
                 auto boundaryCheck = [this, alignment, &pile, &nfps, &merged_pile, &getNfpPoint,
                     &item, &bin, &iv, &startpos](const Optimum& o)
@@ -1649,17 +1671,21 @@ private:
                     __parallel::enumerate(
                         cache.corners().begin(),
                         cache.corners().end(),
-                        [this, &results, &item, &rofn, &nfpoint, ch, accuracy, &startpos, &getNfpPoint, &pile, &iv]
+                        [this, &results, &item, &rofn, &nfpoint,&nfpPointCheck,&nfps, ch, accuracy, &startpos, &getNfpPoint, &pile, &iv]
                     (double pos, size_t n)
                         {
                             Optimizer solver(accuracy);
 
                             Item itemcpy = item;
-                            auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy]
+
+                            auto contour_ofn = [&rofn, &nfpoint, ch, &itemcpy, &nfpPointCheck]
                             (double relpos)
                             {
                                 Optimum op(relpos, ch);
-                                return rofn(nfpoint(op), itemcpy);
+                                auto np = nfpoint(op);
+                                if (nfpPointCheck(np))
+                                    return rofn(np, itemcpy);
+                                else return std::numeric_limits<double>::max();
                             };
 
                             try {
@@ -1673,11 +1699,29 @@ private:
                                     Optimum optimum(std::get<0>(results[n].optimum), ch, -1);
                                     auto d = getNfpPoint(optimum) - iv;
                                     d += startpos;
-
-                                    item.translation(d);
-
-                                    config_.debug_items(pile, Shapes(), Shapes(), item.transformedShape());
+                                    Item cpy{item};
+                                    cpy.translation(d);
+                                    config_.debug_items(pile, Shapes(), Shapes(), cpy.transformedShape());
                                 }
+#if _DEBUG
+                                
+                                if (true) {
+                                    Optimum optimum(std::get<0>(results[n].optimum), ch, -1);
+                                    Vertex np = nfpoint(optimum);
+                                    auto d = np - iv;
+                                    d += startpos;
+                                    Item cpy{item};
+                                    cpy.translation(d);
+                                    writer::ItemWriter<RawShape> itemWriter;
+                                    writer::ItemWriter<RawShape>::SVGData datas;
+                                    datas.p = np;
+                                    datas.bin = bin_;
+                                    datas.items = items_;
+                                    datas.orsh = cpy;
+                                    datas.nfps = nfps;
+                                    itemWriter.saveItems(datas, "D://test/nfps" + std::to_string(n));
+                                }
+#endif
 
                             }
                             catch (std::exception& e) {

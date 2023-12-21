@@ -1,8 +1,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CX_UTILS_POLYGON_H
-#define CX_UTILS_POLYGON_H
+#ifndef CX_POLYGON_H
+#define CX_POLYGON_H
 
 #include <vector>
 #include <assert.h>

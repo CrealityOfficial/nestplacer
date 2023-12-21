@@ -106,6 +106,11 @@ namespace svg
         return scale;
     }
 
+    void SVG::setFlipY(bool flip)
+    {
+        flipY = flip;
+    }
+
     void SVG::nextLayer()
     {
         fprintf(out, "  </g>\n");
@@ -118,12 +123,14 @@ namespace svg
 
     Point SVG::transform(const Point& p)
     {
-        return Point((p.X - aabb.min.X) * scale, (p.Y - aabb.min.Y) * scale);
+        auto y = flipY ? (aabb.max.Y - p.Y) : (p.Y - aabb.min.Y);
+        return Point((p.X - aabb.min.X) * scale, y * scale);
     }
 
     FPoint3 SVG::transformF(const Point& p)
     {
-        return FPoint3((p.X - aabb.min.X) * scale, (p.Y - aabb.min.Y) * scale, 0.0);
+        auto y = flipY ? (aabb.max.Y - p.Y) : (p.Y - aabb.min.Y);
+        return FPoint3((p.X - aabb.min.X) * scale, y * scale, 0.0);
     }
 
     void SVG::writeComment(std::string comment)

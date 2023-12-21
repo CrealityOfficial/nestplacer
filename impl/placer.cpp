@@ -158,8 +158,28 @@ namespace nestplacer
 
     void PItem::polygon(nestplacer::PlacerItemGeometry& geometry)
     {
-        geometry.holes.clear();
-        geometry.outline.swap(geometry.outline);
+        geometry.outline = contour;
+        //geometry.holes = holes;
+    }
+
+    void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter)
+    {
+        NestInput input;
+        if (!ccglobal::cxndLoad(input, fileName, nullptr)) {
+            LOGE("load data from file load error [%s]", fileName.c_str());
+            return;
+        }
+        fixed.reserve(input.fixed.size());
+        actives.reserve(input.actives.size());
+        for (const auto& fix : input.fixed) {
+            PItem* pitem = new PItem(fix);
+            fixed.emplace_back(pitem);
+        }
+        for (const auto& active : input.actives) {
+            PItem* pitem = new PItem(active);
+            actives.emplace_back(pitem);
+        }
+        parameter = input.param;
     }
 
     void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer)
@@ -173,12 +193,12 @@ namespace nestplacer
         fixed.reserve(input.fixed.size());
         actives.reserve(input.actives.size());
         for (const auto& fix : input.fixed) {
-            PItem pitem(fix);
-            fixed.emplace_back(&pitem);
+            PItem* pitem = new PItem(fix);
+            fixed.emplace_back(pitem);
         }
         for (const auto& active : input.actives) {
-            PItem pitem(active);
-            actives.emplace_back(&pitem);
+            PItem* pitem = new PItem(active);
+            actives.emplace_back(pitem);
         }
         PlacerParameter param = input.param;
         return place(fixed, actives, param, results, binExtendStrategy);
@@ -195,17 +215,17 @@ namespace nestplacer
         fixed.reserve(input.fixed.size());
         actives.reserve(input.actives.size());
         for (const auto& fix : input.fixed) {
-            PItem pitem(fix);
-            fixed.emplace_back(&pitem);
+            PItem* pitem = new PItem(fix);
+            fixed.emplace_back(pitem);
         }
         for (const auto& active : input.actives) {
-            PItem pitem(active);
-            actives.emplace_back(&pitem);
+            PItem* pitem = new PItem(active);
+            actives.emplace_back(pitem);
         }
         PlacerItem* active = actives.front();
         PlacerParameter param = input.param;
         trimesh::box3 box = input.box;
-        return extendFill(fixed, active, param, box, results);
+        return extendFill(fixed, active, param, results);
     }
 
     void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
@@ -274,11 +294,21 @@ namespace nestplacer
 
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
-            int step = (int)(360.0f / parameter.rotateAngle);
+            float angle = parameter.rotateAngle;
             config.placer_config.rotations.clear();
-            for (int i = 0; i < step; ++i)
-                config.placer_config.rotations.emplace_back(
-                    libnest2d::Radians(libnest2d::Degrees((double)i * parameter.rotateAngle)));
+            if (angle >= 5) {
+                int step = (int)(360.0f / angle);
+                for (int i = 0; i < step; ++i) {
+                    double theta = (double)i * angle;
+                    libnest2d::Radians rotate = libnest2d::Degrees(theta);
+                    config.placer_config.rotations.emplace_back(rotate);
+                }
+            }
+            if(config.placer_config.rotations.empty())
+                config.placer_config.rotations.emplace_back(0);
+        } else {
+            config.placer_config.rotations.clear();
+            config.placer_config.rotations.emplace_back(0);
         }
 
         size_t bins = nest(inputs, box_func(0), itemGap, config, ctl);
@@ -299,8 +329,8 @@ namespace nestplacer
         results.insert(results.end(), activeRts.begin(), activeRts.end());
 	}
 
-	void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active,
-		const PlacerParameter& parameter, const trimesh::box3& binBox, std::vector<PlacerResultRT>& results)
+	void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active, const PlacerParameter& parameter, 
+        std::vector<PlacerResultRT>& results)
 	{
         if (!parameter.fileName.empty() && (!fixed.empty() || !active)) {
             NestInput input;
@@ -321,11 +351,12 @@ namespace nestplacer
             input.fixed.swap(pfixed);
             input.actives.swap(pactives);
             input.param = parameter;
-            input.box = binBox;
+            input.box = parameter.box;
             ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
         }
 
         std::vector<libnest2d::Item> inputs;
+        trimesh::box3 binBox = parameter.box;
         libnest2d::Box box = convertBox(binBox);
         inputs.reserve(fixed.size());
         for (PlacerItem* pitem : fixed) {
@@ -374,11 +405,21 @@ namespace nestplacer
 
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
-            int step = (int)(360.0f / parameter.rotateAngle);
+            float angle = parameter.rotateAngle;
             config.placer_config.rotations.clear();
-            for (int i = 0; i < step; ++i)
-                config.placer_config.rotations.emplace_back(
-                    libnest2d::Radians(libnest2d::Degrees((double)i * parameter.rotateAngle)));
+            if (angle >= 5) {
+                int step = (int)(360.0f / angle);
+                for (int i = 0; i < step; ++i) {
+                    double theta = (double)i * angle;
+                    libnest2d::Radians rotate = libnest2d::Degrees(theta);
+                    config.placer_config.rotations.emplace_back(rotate);
+                }
+            }
+            if (config.placer_config.rotations.empty())
+                config.placer_config.rotations.emplace_back(0);
+        } else {
+            config.placer_config.rotations.clear();
+            config.placer_config.rotations.emplace_back(0);
         }
 
         size_t bins = nest(inputs, box_func(0), itemGap, config, ctl);
