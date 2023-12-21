@@ -1560,7 +1560,9 @@ private:
                 auto merged_pile = nfp::merge(pile);
                 auto& bin = bin_;
                 double norm = norm_;
-                auto pbb = sl::boundingBox(merged_pile);
+                Box pbb;
+                if (!merged_pile.empty())
+                    pbb = sl::boundingBox(merged_pile);
                 auto binbb = sl::boundingBox(bin);
 
                 // This is the kernel part of the object function that is
