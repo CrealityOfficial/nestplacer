@@ -437,7 +437,7 @@ private:
             if(inflate_cache_valid_) return inflate_cache_;
 
             inflate_cache_ = sh_;
-            sl::offset(inflate_cache_, inflation_ - 1);
+            sl::offset(inflate_cache_, inflation_);
             if (convex_cal_) inflate_cache_.Contour = sl::convexHull(inflate_cache_.Contour); //保证放大后还是凸包
             inflate_cache_valid_ = true;
             return inflate_cache_;
@@ -874,7 +874,23 @@ public:
         if(min_obj_distance_ > 0) std::for_each(from, to, [infl](Item& item) {
             item.inflate(-infl);
         });
-        
+#if _DEBUG
+        if (false) {
+            std::vector<ItemRef> items_;
+            auto it = from;
+            while (it != to) {
+                items_.emplace_back(*it);
+                ++it;
+            }
+            writer::ItemWriter<ShapeType> itemWriter;
+            writer::ItemWriter<ShapeType>::SVGData datas;
+            datas.bin = bin_;
+            datas.items = items_;
+            //datas.orsh = item;
+            //datas.nfps = nfps;
+            itemWriter.saveItems(datas, "D://test/nfps2");
+        }
+#endif
         return selector_.getResult().size();
     }
 

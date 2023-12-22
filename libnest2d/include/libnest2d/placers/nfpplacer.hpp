@@ -1511,7 +1511,7 @@ private:
 
                 nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
 #if _DEBUG
-                if (true) {
+                if (false) {
                     writer::ItemWriter<RawShape> itemWriter;
                     writer::ItemWriter<RawShape>::SVGData datas;
                     datas.bin = bin_;
@@ -1707,21 +1707,23 @@ private:
                                 }
 #if _DEBUG
                                 
-                                if (true) {
+                                if (false) {
                                     Optimum optimum(std::get<0>(results[n].optimum), ch, -1);
                                     Vertex np = nfpoint(optimum);
-                                    auto d = np - iv;
-                                    d += startpos;
-                                    Item cpy{item};
-                                    cpy.translation(d);
-                                    writer::ItemWriter<RawShape> itemWriter;
-                                    writer::ItemWriter<RawShape>::SVGData datas;
-                                    datas.p = np;
-                                    datas.bin = bin_;
-                                    datas.items = items_;
-                                    datas.orsh = cpy;
-                                    datas.nfps = nfps;
-                                    itemWriter.saveItems(datas, "D://test/nfps" + std::to_string(n));
+                                    if (results[n].score < std::numeric_limits<double>::max()) {
+                                        auto d = np - iv;
+                                        d += startpos;
+                                        Item cpy{ item };
+                                        cpy.translation(d);
+                                        writer::ItemWriter<RawShape> itemWriter;
+                                        writer::ItemWriter<RawShape>::SVGData datas;
+                                        datas.p = np;
+                                        datas.bin = bin_;
+                                        datas.items = items_;
+                                        datas.orsh = cpy;
+                                        datas.nfps = nfps;
+                                        itemWriter.saveItems(datas, "D://test/nfps" + std::to_string(n));
+                                    }
                                 }
 #endif
 

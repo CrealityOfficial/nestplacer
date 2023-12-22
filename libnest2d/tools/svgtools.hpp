@@ -196,14 +196,11 @@ public:
         if (!file.good()) return;
         std::string svgFile = filename + ".svg";
         svg::Polygons binpolys;
-        svg::AABB aabb;
-        if (!datas.bin.area()) {
-            Box fullbb = datas.getBound();
-            binpolys = convertPolygons(fullbb, true);
-            aabb = getAABB(binpolys, true);
-        } else {
+        Box fullbb = datas.getBound();
+        binpolys = convertPolygons(fullbb, true);
+        svg::AABB aabb = getAABB(binpolys, true);
+        if (datas.bin.area()) {
             binpolys = convertPolygons(datas.bin);
-            aabb = getAABB(datas.bin, true);
         }
         svg::SVG svg(svgFile, aabb);
         svg.setFlipY(true);

@@ -134,6 +134,19 @@ namespace nestplacer
         poly.Holes.swap(holes);
     }
 
+    bool IntersectToBox(const libnest2d::Item& item, const libnest2d::Box& bbox)
+    {
+        const libnest2d::Box& box = item.boundingBox();
+        const auto& bmin = box.minCorner();
+        const auto& bmax = box.maxCorner();
+        const auto& min = bbox.minCorner();
+        const auto& max = bbox.maxCorner();
+        if (bmin.X >= max.X || bmin.Y >= max.Y || bmax.X <= min.X || bmax.Y <= min.Y) {
+            return false;
+        }
+        return true;
+    }
+
     class PItem : public nestplacer::PlacerItem {
     public:
         PItem(const PlacerItemGeometry& geometry);
@@ -254,12 +267,24 @@ namespace nestplacer
 
 		std::vector<libnest2d::Item> inputs;
         inputs.reserve(fixed.size() + actives.size());
+        auto box_func = [&binExtendStrategy](const int& index) {
+            trimesh::box3 binBox = binExtendStrategy.bounding(index);
+            libnest2d::Box box = convertBox(binBox);
+            return box;
+        };
+        libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
+        config.placer_config.box_function = box_func;
+        libnest2d::Box bbin = box_func(0);
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             pitem->polygon(geometry);
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
+            if (!IntersectToBox(item, bbin)) {
+                results.emplace_back();
+                continue;
+            }
             item.markAsFixedInBin(0);
             inputs.emplace_back(item);
         }
@@ -274,7 +299,7 @@ namespace nestplacer
         libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
         libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
         libnest2d::NestControl ctl;
-        libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
+        
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
         if (parameter.needAlign) {
@@ -283,14 +308,8 @@ namespace nestplacer
             config.placer_config.alignment= libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
 
-        auto box_func = [&binExtendStrategy](const int& index) {
-            trimesh::box3 binBox = binExtendStrategy.bounding(index);
-            libnest2d::Box box = convertBox(binBox);
-            return box;
-        };
-        config.placer_config.box_function = box_func;
+        
         config.placer_config.needNewBin = true;
-
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
             int angle = parameter.rotateAngle;
@@ -310,7 +329,7 @@ namespace nestplacer
             config.placer_config.rotations.emplace_back(0);
         }
 
-        size_t bins = nest(inputs, box_func(0), itemGap, config, ctl);
+        size_t bins = nest(inputs, bbin, itemGap, config, ctl);
 
         //return transformed items.
         std::vector<PlacerResultRT> activeRts;
@@ -355,7 +374,7 @@ namespace nestplacer
 
         std::vector<libnest2d::Item> inputs;
         trimesh::box3 binBox = parameter.box;
-        libnest2d::Box box = convertBox(binBox);
+        libnest2d::Box bbox = convertBox(binBox);
         inputs.reserve(fixed.size());
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
@@ -363,12 +382,16 @@ namespace nestplacer
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
+            if (!IntersectToBox(item, bbox)) {
+                results.emplace_back();
+                continue;
+            }
             item.markAsFixedInBin(0);
             inputs.emplace_back(item);
         }
         {
             if (!active) return;
-            libnest2d::Coord binArea = box.area();
+            libnest2d::Coord binArea = bbox.area();
             nestplacer::PlacerItemGeometry geometry;
             active->polygon(geometry);
             Clipper3r::Polygon sh;
@@ -420,7 +443,7 @@ namespace nestplacer
             config.placer_config.rotations.emplace_back(0);
         }
 
-        size_t bins = nest(inputs, box_func(0), itemGap, config, ctl);
+        size_t bins = nest(inputs, bbox, itemGap, config, ctl);
 
         //return transformed items.
         std::vector<PlacerResultRT> activeRts;
