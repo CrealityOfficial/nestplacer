@@ -1518,6 +1518,7 @@ private:
                     datas.items = items_;
                     datas.orsh = item;
                     datas.nfps = nfps;
+                    datas.p = item.referenceVertex();
                     itemWriter.saveItems(datas, "D://test/nfps");
                 }
 #endif

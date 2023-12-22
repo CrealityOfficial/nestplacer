@@ -301,6 +301,7 @@ namespace nestplacer
         libnest2d::NestControl ctl;
         
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);
@@ -410,6 +411,7 @@ namespace nestplacer
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);

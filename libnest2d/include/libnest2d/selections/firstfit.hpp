@@ -108,6 +108,7 @@ public:
         while(it != store_.end() && !cancelled()) {
             bool was_packed = false;
             size_t j = 0;
+            if (placers.size() > 1) j = placers.size() - 1;
             while(!was_packed && !cancelled()) {
                 for(; j < placers.size() && !was_packed && !cancelled(); j++) {
                     if((was_packed = placers[j].pack(*it, rem(it, store_) ))) {
