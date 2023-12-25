@@ -42,7 +42,7 @@ namespace nestplacer
         */
         bool needAlign = false;
         int align_mode = 0;
-
+        bool concaveCal = false;
         trimesh::box3 box;
 		ccglobal::Tracer* tracer = nullptr;
 

@@ -275,6 +275,7 @@ namespace nestplacer
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
         config.placer_config.box_function = box_func;
         libnest2d::Box bbin = box_func(0);
+        bool concaveCal = parameter.concaveCal;
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             pitem->polygon(geometry);
@@ -286,6 +287,9 @@ namespace nestplacer
                 continue;
             }
             item.markAsFixedInBin(0);
+            if (concaveCal) {
+                item.convexCal(false);
+            }
             inputs.emplace_back(item);
         }
 		for (PlacerItem* pitem : actives){
@@ -294,6 +298,9 @@ namespace nestplacer
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
+            if (concaveCal) {
+                item.convexCal(false);
+            }
             inputs.emplace_back(item);
 		}
         libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
@@ -309,7 +316,6 @@ namespace nestplacer
             config.placer_config.alignment= libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
 
-        
         config.placer_config.needNewBin = true;
         config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
@@ -377,6 +383,7 @@ namespace nestplacer
         trimesh::box3 binBox = parameter.box;
         libnest2d::Box bbox = convertBox(binBox);
         inputs.reserve(fixed.size());
+        bool concaveCal = parameter.concaveCal;
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             pitem->polygon(geometry);
@@ -388,6 +395,9 @@ namespace nestplacer
                 continue;
             }
             item.markAsFixedInBin(0);
+            if (concaveCal) {
+                item.convexCal(false);
+            }
             inputs.emplace_back(item);
         }
         {
@@ -398,6 +408,9 @@ namespace nestplacer
             Clipper3r::Polygon sh;
             convertPolygon(geometry, sh);
             libnest2d::Item item(sh);
+            if (concaveCal) {
+                item.convexCal(false);
+            }
             const auto& contour = item.rawShape().Contour;
             libnest2d::Coord itemArea = Clipper3r::Area(contour);
             int nums = std::floor(binArea / std::fabs(itemArea));
