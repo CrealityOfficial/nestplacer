@@ -108,7 +108,6 @@ public:
         while(it != store_.end() && !cancelled()) {
             bool was_packed = false;
             size_t j = 0;
-            if (placers.size() > 1) j = placers.size() - 1;
             while(!was_packed && !cancelled()) {
                 for(; j < placers.size() && !was_packed && !cancelled(); j++) {
                     if((was_packed = placers[j].pack(*it, rem(it, store_) ))) {
@@ -124,7 +123,7 @@ public:
                         placers.back().configure(pconfig);
                         packed_bins_.emplace_back();
                         j = placers.size() - 1;
-                    } else if (pconfig.needNewBin) {
+                    } else if (/*(j == placers.size()) &&*/ pconfig.needNewBin) {
                         pconfig.setAlignment(pconfig.getNewAlignment());
                         pconfig.setStartPoint(pconfig.getNewStartPoint());
                         bin = pconfig.box_function(placers.size());
