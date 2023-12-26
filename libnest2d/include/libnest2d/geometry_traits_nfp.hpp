@@ -755,7 +755,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     for(auto& s : seq) {
         edgelist.emplace_back(s.eref.get().e);
     }
-
+    std::reverse(edgelist.begin(), edgelist.end());
     __nfp::buildPolygon(edgelist, rsh, top_nfp);
 
     return Result(rsh, top_nfp);

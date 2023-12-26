@@ -1,4 +1,4 @@
-#ifndef NESTER_HPP
+Ôªø#ifndef NESTER_HPP
 #define NESTER_HPP
 
 #include <memory>
@@ -439,21 +439,12 @@ private:
             inflate_cache_ = sh_;
             sl::offset(inflate_cache_, inflation_);
             if (convex_cal_) {
-                inflate_cache_.Contour = sl::convexHull(inflate_cache_.Contour); //±£÷§∑≈¥Û∫Ûªπ «Õπ∞¸
+                inflate_cache_.Contour = sl::convexHull(inflate_cache_.Contour); //‰øùËØÅÊîæÂ§ßÂêéËøòÊòØÂá∏ÂåÖ
                 const THolesContainer<RawShape>& holes = inflate_cache_.Holes;
                 inflate_cache_.Holes.clear();
                 inflate_cache_.Holes.reserve(holes.size());
                 for (auto& hole : holes) {
                     inflate_cache_.Holes.emplace_back(sl::convexHull(hole));
-                }
-            }
-            else {
-                inflate_cache_.Contour = polygonLib::PolygonPro::polygonConcaveHull(inflate_cache_.Contour);
-                const THolesContainer<RawShape>& holes = inflate_cache_.Holes;
-                inflate_cache_.Holes.clear();
-                inflate_cache_.Holes.reserve(holes.size());
-                for (auto& hole : holes) {
-                    inflate_cache_.Holes.emplace_back(polygonLib::PolygonPro::polygonConcaveHull(hole));
                 }
             }
             inflate_cache_valid_ = true;
