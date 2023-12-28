@@ -792,13 +792,15 @@ template<class RawShape, NfpLevel nfptype>
 struct NfpImpl {
     NfpResult<RawShape> operator()(const RawShape& sh, const RawShape& other)
     {
-        static_assert(nfptype == NfpLevel::CONVEX_ONLY,
-                      "Nfp::noFitPolygon() unimplemented!");
+        /*static_assert(nfptype == NfpLevel::CONVEX_ONLY,
+                      "Nfp::noFitPolygon() unimplemented!");*/
 
         // Libnest2D has a default implementation for convex polygons and will
         // use it if feasible.
-        return nfpConvexOnly(sh, other);
-        //return nfpConcaveToConcave(sh, other);
+        if (nfptype == NfpLevel::CONVEX_ONLY)
+            return nfpConvexOnly(sh, other);
+        else
+            return nfpConcaveToConcave(sh, other);
     }
 };
 

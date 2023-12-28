@@ -147,6 +147,7 @@ struct NfpPConfig {
      */
     bool explore_holes = false;
 
+    bool calConcave = false;
     /**
      * @brief If true, use all CPUs available. Run on a single core otherwise.
      */
@@ -819,11 +820,11 @@ private:
             auto& stat = sh.transformedShape();
 
             if(sh.isContourConvex() && orbconvex)
-                subnfp = nfp::noFitPolygon<NfpLevel::CONVEX_ONLY>(stat, orb);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::CONVEX_ONLY>(stat, orb);
             else if(orbconvex)
-                subnfp = nfp::noFitPolygon<NfpLevel::ONE_CONVEX>(stat, orb);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::ONE_CONVEX>(stat, orb);
             else
-                subnfp = nfp::noFitPolygon<Level::value>(stat, orb);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::BOTH_CONCAVE>(stat, orb);
 
             correctNfpPosition(subnfp, sh, trsh);
 
@@ -1508,8 +1509,10 @@ private:
                 // place the new item outside of the print bed to make sure
                 // it is disjunct from the current merged pile
                 placeOutsideOfBin(item);
-
-                nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+                if(!config_.calConcave)
+                    nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
+                else
+                    nfps = calcnfp(item, nfp::NfpLevel::BOTH_CONCAVE);
 #if _DEBUG
                 if (false) {
                     writer::ItemWriter<RawShape> itemWriter;

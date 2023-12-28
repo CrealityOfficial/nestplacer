@@ -276,6 +276,7 @@ namespace nestplacer
         config.placer_config.box_function = box_func;
         libnest2d::Box bbin = box_func(0);
         bool concaveCal = parameter.concaveCal;
+        config.placer_config.calConcave = concaveCal;
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             pitem->polygon(geometry);
@@ -426,6 +427,7 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
+        config.placer_config.calConcave = concaveCal;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);
         } else {
