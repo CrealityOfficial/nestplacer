@@ -1,4 +1,4 @@
-#ifndef GEOMETRIES_NOFITPOLYGON_HPP
+﻿#ifndef GEOMETRIES_NOFITPOLYGON_HPP
 #define GEOMETRIES_NOFITPOLYGON_HPP
 
 #include <algorithm>
@@ -566,7 +566,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
             auto mit = merged.begin();
             for(bool finish = false; !finish && q != Q.end();) {
                 ++q; // "Set i = i + 1"
-
+                if (q == Q.end()) finish = true;
                 while(!finish && mit != merged.end()) {
                     if(mit->isFrom(Rcont)) {
                         auto s = *mit;
@@ -595,7 +595,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
             auto mit = merged.begin();
             for(bool finish = false; !finish && q != Q.rend();) {
                 ++q; // "Set i = i + 1"
-
+                if (q == Q.rend()) finish = true;
                 while(!finish && mit != merged.end()) {
                     if(mit->isFrom(Rcont)) {
                         auto s = *mit;
@@ -623,11 +623,12 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
         // "Let starting edge r1 be in position si in sequence"
         // whaaat? I guess this means the following:
         auto it = S.begin();
-        while(!it->eq(*R.begin())) ++it;
+        while (it != S.end() && !it->eq(*R.begin())) ++it;
 
         // "Set j = 1, next = 2, direction = 1, seq1 = si"
         // we don't use j, seq is expanded dynamically.
         dir = 1;
+        if (it == S.end()) it = S.begin();
         auto next = std::next(R.begin()); seq.emplace_back(*it);
 
         // Step 5:
@@ -645,15 +646,19 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
                 // direction = - direction, next = next + direction"
                 if(it->isTurningPoint()) {
                     dir = -dir;
-                    next += dir;
+                    if (next == R.begin() && dir == -1) next = R.end() + dir;
+                    else if (next == R.end() && dir == 1) next = R.begin() + dir;
+                    else next += dir;
 //                    __nfp::advance(next, R, dir > 0);
                 }
             }
-
+            if (next == R.end()) next = R.begin();
             if(it->eq(*next) /*&& dir == next->dir*/) { // "If si = direction.rnext"
                 // "j = j + 1, seqj = si, next = next + direction"
                 seq.emplace_back(*it);
-                next += dir;
+                if (next == R.begin() && dir == -1) next = R.end() + dir;
+                else if (next == R.end() && dir == 1) next = R.begin() + dir;
+                else next += dir;
 //                __nfp::advance(next, R, dir > 0);
             }
         }
@@ -670,7 +675,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     std::sort(Bslope.begin(), Bslope.end(), sortfn);
 
     auto slopeit = Bslope.begin(); // search for the first turning point
-    while(!slopeit->isTurningPoint() && slopeit != Bslope.end()) slopeit++;
+    while(slopeit != Bslope.end() && !slopeit->isTurningPoint()) slopeit++;
 
     if(slopeit == Bslope.end()) {
         // no turning point means convex polygon.
@@ -753,7 +758,8 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     Vertex top_nfp;
     std::vector<Edge> edgelist; edgelist.reserve(seq.size());
     for(auto& s : seq) {
-        edgelist.emplace_back(s.eref.get().e);
+        const auto& e = s.eref.get().e;
+        edgelist.emplace_back(e.second(), e.first());
     }
     std::reverse(edgelist.begin(), edgelist.end());
     __nfp::buildPolygon(edgelist, rsh, top_nfp);
@@ -761,6 +767,25 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
     return Result(rsh, top_nfp);
 }
 
+template<class RawShape>
+NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh,
+    const RawShape& other)
+{
+    using Vertex = TPoint<RawShape>;
+    auto stcont = sh.Contour;
+    auto orbit = other.Contour;
+    std::reverse(orbit.begin(), orbit.end());
+    Clipper3r::Paths paths;
+    Clipper3r::MinkowskiDiff(orbit, stcont, paths);
+    for (auto& path : paths) {
+        std::reverse(path.begin(), path.end());
+    }
+    RawShape rsh;
+    rsh.Contour = paths.front();
+    auto& cmp = __nfp::_vsort<RawShape>;
+    Vertex top_nfp = *std::max_element(rsh.Contour.begin(), rsh.Contour.end(), cmp);
+    return { rsh, top_nfp };
+}
 // Specializable NFP implementation class. Specialize it if you have a faster
 // or better NFP implementation
 template<class RawShape, NfpLevel nfptype>
@@ -773,6 +798,7 @@ struct NfpImpl {
         // Libnest2D has a default implementation for convex polygons and will
         // use it if feasible.
         return nfpConvexOnly(sh, other);
+        //return nfpConcaveToConcave(sh, other);
     }
 };
 
