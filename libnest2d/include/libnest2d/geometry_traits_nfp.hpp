@@ -5,7 +5,8 @@
 #include <functional>
 #include <vector>
 #include <iterator>
-
+#include "clipper3r/clipper.hpp"
+#include "polygonLib/polygonLib.h"
 #include <libnest2d/geometry_traits.hpp>
 
 namespace libnest2d {
@@ -768,20 +769,21 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
 }
 
 template<class RawShape>
-NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh,
-    const RawShape& other)
+NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& other, double eps = 1E5)
 {
     using Vertex = TPoint<RawShape>;
     auto stcont = sh.Contour;
+    const Clipper3r::Path& stout = polygonLib::PolygonPro::polygonSimplyfy(stcont, eps);
     auto orbit = other.Contour;
     std::reverse(orbit.begin(), orbit.end());
+    const Clipper3r::Path& orout = polygonLib::PolygonPro::polygonSimplyfy(orbit, eps);
     Clipper3r::Paths paths;
-    Clipper3r::MinkowskiDiff(orbit, stcont, paths);
+    Clipper3r::MinkowskiDiff(orout, stout, paths);
     for (auto& path : paths) {
         std::reverse(path.begin(), path.end());
     }
     RawShape rsh;
-    rsh.Contour = paths.front();
+    if(!paths.empty()) rsh.Contour = paths.front();
     auto& cmp = __nfp::_vsort<RawShape>;
     Vertex top_nfp = *std::max_element(rsh.Contour.begin(), rsh.Contour.end(), cmp);
     return { rsh, top_nfp };
@@ -790,6 +792,7 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh,
 // or better NFP implementation
 template<class RawShape, NfpLevel nfptype>
 struct NfpImpl {
+    double epsilon = 1E5;
     NfpResult<RawShape> operator()(const RawShape& sh, const RawShape& other)
     {
         /*static_assert(nfptype == NfpLevel::CONVEX_ONLY,
@@ -800,16 +803,16 @@ struct NfpImpl {
         if (nfptype == NfpLevel::CONVEX_ONLY)
             return nfpConvexOnly(sh, other);
         else
-            return nfpConcaveToConcave(sh, other);
+            return nfpConcaveToConcave(sh, other, epsilon);
     }
 };
 
 /// Helper function to get the NFP
 template<NfpLevel nfptype, class RawShape>
-inline NfpResult<RawShape> noFitPolygon(const RawShape& sh,
-                                        const RawShape& other)
+inline NfpResult<RawShape> noFitPolygon(const RawShape& sh, const RawShape& other, double eps = 1E5)
 {
     NfpImpl<RawShape, nfptype> nfps;
+    nfps.epsilon = eps;
     return nfps(sh, other);
 }
 

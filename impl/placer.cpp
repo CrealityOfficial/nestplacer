@@ -311,6 +311,7 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
+        config.placer_config.itemGap = itemGap;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);
         } else {
@@ -427,6 +428,7 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
+        config.placer_config.itemGap = itemGap;
         config.placer_config.calConcave = concaveCal;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);

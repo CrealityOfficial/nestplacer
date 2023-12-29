@@ -189,7 +189,7 @@ struct NfpPConfig {
     }
     
     Coord binItemGap = 0;
-
+    Coord itemGap = 0;
     bool needNewBin = false;
     inline bool needAlign() const 
     {
@@ -814,7 +814,7 @@ private:
 
         auto& orb = trsh.transformedShape();
         bool orbconvex = trsh.isContourConvex();
-
+        const double dist = 0.12 * config_.itemGap;
         for(Item& sh : items_) {
             nfp::NfpResult<RawShape> subnfp;
             auto& stat = sh.transformedShape();
@@ -822,9 +822,9 @@ private:
             if(sh.isContourConvex() && orbconvex)
                 subnfp = nfp::noFitPolygon<nfp::NfpLevel::CONVEX_ONLY>(stat, orb);
             else if(orbconvex)
-                subnfp = nfp::noFitPolygon<nfp::NfpLevel::ONE_CONVEX>(stat, orb);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::ONE_CONVEX>(stat, orb, dist);
             else
-                subnfp = nfp::noFitPolygon<nfp::NfpLevel::BOTH_CONCAVE>(stat, orb);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::BOTH_CONCAVE>(stat, orb, dist);
 
             correctNfpPosition(subnfp, sh, trsh);
 
