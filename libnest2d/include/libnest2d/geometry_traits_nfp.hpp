@@ -774,18 +774,37 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& othe
     using Vertex = TPoint<RawShape>;
     auto stcont = sh.Contour;
     const Clipper3r::Path& stout = polygonLib::PolygonPro::polygonSimplyfy(stcont, eps);
-    auto orbit = other.Contour;
-    std::reverse(orbit.begin(), orbit.end());
+    auto orcont = other.Contour;
+    Clipper3r::Path orbit;
+    orbit.reserve(orcont.size());
+    for (auto it = orcont.rbegin(); it != orcont.rend(); ++it) {
+        orbit.emplace_back(*it);
+    }
     const Clipper3r::Path& orout = polygonLib::PolygonPro::polygonSimplyfy(orbit, eps);
-    Clipper3r::Paths paths;
+    Clipper3r::Paths paths, outPaths;
     Clipper3r::MinkowskiDiff(orout, stout, paths);
+    outPaths.reserve(paths.size());
     for (auto& path : paths) {
-        std::reverse(path.begin(), path.end());
+        outPaths.emplace_back();
+        outPaths.back().reserve(path.size());
+        for (auto it = path.rbegin(); it != path.rend(); ++it) {
+            outPaths.back().emplace_back(*it);
+        }
     }
     RawShape rsh;
-    if(!paths.empty()) rsh.Contour = paths.front();
-    auto& cmp = __nfp::_vsort<RawShape>;
-    Vertex top_nfp = *std::max_element(rsh.Contour.begin(), rsh.Contour.end(), cmp);
+    if (!outPaths.empty()) rsh.Contour = outPaths.front();
+    else throw std::runtime_error("outPaths is empty!");
+
+    Vertex top_nfp = rsh.Contour.front();
+    for (auto it = rsh.Contour.begin(); it != rsh.Contour.end(); ++it) {
+        Vertex tmp = *it;
+        auto x1 = getX(top_nfp), x2 = getX(tmp);
+        auto y1 = getY(top_nfp), y2 = getY(tmp);
+        if (y1 < y2 || (y1 == y2 && x1 < x2)) {
+            top_nfp = tmp;
+        }
+    }
+    
     return { rsh, top_nfp };
 }
 // Specializable NFP implementation class. Specialize it if you have a faster
