@@ -783,6 +783,7 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& othe
     const Clipper3r::Path& orout = polygonLib::PolygonPro::polygonSimplyfy(orbit, eps);
     Clipper3r::Paths paths, outPaths;
     Clipper3r::MinkowskiDiff(orout, stout, paths);
+
     outPaths.reserve(paths.size());
     for (auto& path : paths) {
         outPaths.emplace_back();
@@ -792,7 +793,25 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& othe
         }
     }
     RawShape rsh;
-    if (!outPaths.empty()) rsh.Contour = outPaths.front();
+    if (!outPaths.empty()) {
+        rsh.Contour = outPaths.front();
+        if (outPaths.size() > 1) {
+            auto contour = rsh.Contour;
+            for (const auto& path : outPaths) {
+                if (path.size() > contour.size()) {
+                    contour = path;
+                }
+            }
+            rsh.Contour = contour;
+            //处理孔洞
+            /*rsh.Holes.reserve(outPaths.size());
+            for (const auto& path : outPaths) {
+                if (path.size() < contour.size()) {
+                    rsh.Holes.emplace_back(path);
+                }
+            }*/
+        }
+    }
     else throw std::runtime_error("outPaths is empty!");
 
     Vertex top_nfp = rsh.Contour.front();

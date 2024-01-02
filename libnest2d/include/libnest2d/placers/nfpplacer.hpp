@@ -1518,6 +1518,7 @@ private:
                     nfps = calcnfp(item, Lvl<MaxNfpLevel::value>());
                 else
                     nfps = calcnfp(item, nfp::NfpLevel::BOTH_CONCAVE);
+#ifdef _WIN32
 #if _DEBUG
                 if (false) {
                     writer::ItemWriter<RawShape> itemWriter;
@@ -1530,6 +1531,7 @@ private:
                     itemWriter.saveItems(datas, "D://test/nfps");
                 }
 #endif
+#endif // _WIN32
                 if (config_.debug_items) {
                     Shapes nfps1 = calcnfp(item, Lvl<MaxNfpLevel::value>(), false);
                     Shapes allItems;
@@ -1714,6 +1716,7 @@ private:
                                     cpy.translation(d);
                                     config_.debug_items(pile, Shapes(), Shapes(), cpy.transformedShape());
                                 }
+#ifdef _WIN32
 #if _DEBUG
                                 
                                 if (false) {
@@ -1735,6 +1738,7 @@ private:
                                     }
                                 }
 #endif
+#endif // _WIN32
 
                             }
                             catch (std::exception& e) {
