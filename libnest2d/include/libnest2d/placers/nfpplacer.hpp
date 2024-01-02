@@ -811,27 +811,32 @@ private:
         using namespace nfp;
 
         Shapes nfps;
-
+        nfps.resize(items_.size());
         auto& orb = trsh.transformedShape();
         bool orbconvex = trsh.isContourConvex();
         const double dist = 0.12 * config_.itemGap;
-        for(Item& sh : items_) {
-            nfp::NfpResult<RawShape> subnfp;
-            auto& stat = sh.transformedShape();
+        // /////////////////////////////////////////////////////////////////////
+        std::launch policy = std::launch::deferred;
+        if (config_.parallel) policy |= std::launch::async;
 
-            if(sh.isContourConvex() && orbconvex)
+        __parallel::enumerate(items_.begin(), items_.end(),
+            [&nfps, &trsh, &orbconvex, &dist](const Item & sh, size_t n) {
+            auto& stat = sh.transformedShape();
+            auto& orb = trsh.transformedShape();
+            NfpResult<RawShape> subnfp;
+            if (sh.isContourConvex() && orbconvex)
                 subnfp = nfp::noFitPolygon<nfp::NfpLevel::CONVEX_ONLY>(stat, orb);
-            else if(orbconvex)
+            else if (orbconvex)
                 subnfp = nfp::noFitPolygon<nfp::NfpLevel::ONE_CONVEX>(stat, orb, dist);
             else
                 subnfp = nfp::noFitPolygon<nfp::NfpLevel::BOTH_CONCAVE>(stat, orb, dist);
 
             correctNfpPosition(subnfp, sh, trsh);
+            nfps[n] = subnfp.first;
 
-            nfps = nfp::merge(nfps, subnfp.first);
-        }
+        }, policy);
 
-        return nfps;
+        return nfp::merge(nfps);
     }
 
     // Very much experimental
