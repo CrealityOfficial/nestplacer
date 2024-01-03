@@ -223,6 +223,32 @@ public:
         svg::Point point(datas.p.X, datas.p.Y);
         svg.writePoint(point, true, 1.0, svg::SVG::Color::BLUE);
     }
+
+    void savePaths(const Clipper3r::Path& path1, const Clipper3r::Path& path2, const std::string& filename, bool bWritePoints = false)
+    {
+        /*std::string filepath = "D:/test";
+        std::ifstream file(filepath);
+        if (!file.good()) return;*/
+        std::string svgFile = filename + ".svg";
+        svg::Polygons binpolys;
+        binpolys.paths.emplace_back(path1);
+        binpolys.paths.emplace_back(path2);
+        svg::AABB aabb = getAABB(binpolys, true);
+        svg::SVG svg(svgFile, aabb);
+        svg.setFlipY(true);
+        float linewidth = 0.5f;
+        svg::Polygons spolys, epolys;
+        spolys.paths.emplace_back(path1);
+        epolys.paths.emplace_back(path2);
+        svg.writePolygons(binpolys, svg::SVG::Color::BLACK, linewidth);
+        //if (bWritePoints) svg.writePoints(binpolys, true, 1.0, svg::SVG::Color::RAINBOW);
+
+        svg.writePolygons(spolys, svg::SVG::Color::RED, linewidth);
+        //if (bWritePoints) svg.writePoints(shpolys, true, 1.0, svg::SVG::Color::RAINBOW);
+
+        svg.writePolygons(epolys, svg::SVG::Color::GREEN, linewidth);
+        //if (bWritePoints) svg.writePoints(orpolys, true, 1.0, svg::SVG::Color::RAINBOW);
+    }
 };
 
 template<class RawShape>

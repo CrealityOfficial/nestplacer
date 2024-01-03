@@ -882,6 +882,7 @@ public:
         if(min_obj_distance_ > 0) std::for_each(from, to, [infl](Item& item) {
             item.inflate(-infl);
         });
+#ifdef _WIN32
 #if _DEBUG
         if (false) {
             std::vector<ItemRef> items_;
@@ -899,6 +900,7 @@ public:
             itemWriter.saveItems(datas, "D://test/nfps2");
         }
 #endif
+#endif // _WIN32
         return selector_.getResult().size();
     }
 

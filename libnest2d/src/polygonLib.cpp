@@ -1,6 +1,7 @@
 #include"polygonLib/polygonLib.h"
 #include "polygonLib/delaunator.h"
-
+#include "libnest2d/include/libnest2d/common.hpp"
+#include "../include/libnest2d/backends/clipper/clipper_polygon.hpp"
 #include <iostream>
 #include <set>
 
@@ -151,6 +152,7 @@ namespace polygonLib
 		double dmax = 0.0;
 		size_t index = 0;
 		size_t end = pointList.size() - 1;
+        out.reserve(end + 1);
 		for (size_t i = 1; i < end; i++)
 		{
 			double d = PerpendicularDistance(pointList[i], pointList[0], pointList[end]);
@@ -272,8 +274,16 @@ namespace polygonLib
 
 	Clipper3r::Path PolygonPro::polygonSimplyfy(const Clipper3r::Path& input, double epsilon)
 	{
+        bool closed = false;
 		Clipper3r::Path result;
-		RamerDouglasPeucker(input, epsilon, result);
+        if (input.empty()) return result;
+        Clipper3r::Path path = input;
+        if (path.front() == path.back()) {
+            closed = true;
+            path.pop_back();
+        }
+		RamerDouglasPeucker(path, epsilon, result);
+        if (closed) result.emplace_back(result.front());
 		return result;
 	}
 
@@ -287,6 +297,164 @@ namespace polygonLib
 		}
 		return result;
 	}
+
+    Clipper3r::Path PolygonPro::polygonOffset(const Clipper3r::Path& input, double distance) 
+    {
+        using Clipper3r::ClipperOffset;
+        using Clipper3r::jtSquare;
+        using Clipper3r::etClosedPolygon;
+        using Clipper3r::Paths;
+        using Clipper3r::Polygon;
+        Paths result;
+        try {
+            ClipperOffset offs;
+            offs.AddPath(input, jtSquare, etClosedPolygon);
+            //offs.AddPaths(sh.Holes, jtSquare, etClosedPolygon);
+            offs.Execute(result, static_cast<double>(distance));
+        }
+        catch (Clipper3r::clipperException&) {
+            throw libnest2d::GeometryException(libnest2d::GeomErr::OFFSET);
+        }
+
+        // Offsetting reverts the orientation and also removes the last vertex
+        // so boost will not have a closed polygon.
+
+        bool found_the_contour = false;
+        Clipper3r::Polygon sh;
+        for (auto& r : result) {
+            if (Clipper3r::Orientation(r)) {
+                // We don't like if the offsetting generates more than one contour
+                // but throwing would be an overkill. Instead, we should warn the
+                // caller about the inability to create correct geometries
+                if (!found_the_contour) {
+                    sh.Contour = std::move(r);
+                    Clipper3r::ReversePath(sh.Contour);
+                    auto front_p = sh.Contour.front();
+                    sh.Contour.emplace_back(std::move(front_p));
+                    found_the_contour = true;
+                } else {
+                    libnest2d::dout() << "Warning: offsetting result is invalid!";
+                    /* TODO warning */
+                }
+            } else {
+                // TODO If there are multiple contours we can't be sure which hole
+                // belongs to the first contour. (But in this case the situation is
+                // bad enough to let it go...)
+                sh.Holes.emplace_back(std::move(r));
+                Clipper3r::ReversePath(sh.Holes.back());
+                auto front_p = sh.Holes.back().front();
+                sh.Holes.back().emplace_back(std::move(front_p));
+            }
+        }
+        return sh.Contour;
+    }
+
+    Clipper3r::Path PolygonPro::concaveSimplyfy(Clipper3r::Path& input, double epsilon)
+    {
+        Clipper3r::Path path;
+        if (input.empty()) return path;
+        if (input.front() != input.back()) 
+            input.emplace_back(input.front());
+
+        path.reserve(input.size() - 1);
+        for (size_t i = 0; i < input.size() - 1; ++i) {
+            const auto& start = input[i];
+            const auto& end = input[i + 1];
+            path.emplace_back();
+            path.back().X = 0.5 * (start.X + end.X);
+            path.back().Y = 0.5 * (start.Y + end.Y);
+        }
+        auto start = path.back();
+        auto end = path.front();
+        double dmax = PerpendicularDistance(input[0], start, end);
+        for (size_t i = 1; i < input.size() - 1; ++i) {
+            const auto& v = input[i];
+            const auto& start = path[i - 1];
+            const auto& end = path[i];
+            double d = PerpendicularDistance(v, start, end);
+            if (d > dmax) {
+                dmax = d;
+            }
+        }
+        Clipper3r::Path out, result;
+        //RamerDouglasPeucker(path, dmax, out);
+        Clipper3r::Path off = polygonOffset(path, dmax);
+        RamerDouglasPeucker(off, 250000, result);
+        return result;
+    }
+
+    bool PolygonPro::PointInPolygon(const Clipper3r::IntPoint& pt, const Clipper3r::Path& input)
+    {
+        bool inside = false;
+        const size_t len = input.size();
+        for (size_t i = 0, j = len - 1; i < len; j = i++) {
+            const auto& a = input[i];
+            const auto& b = input[j];
+            if (((a.Y > pt.Y) != (b.Y > pt.Y)) &&
+                ((pt.X < (b.X - a.X) * (pt.Y - a.Y) / (b.Y - a.Y) + a.X))) inside = !inside;
+        }
+        return inside;
+    }
+
+    Clipper3r::Path PolygonPro::polygonConvexHull2(const Clipper3r::Path& input, bool clockwise)
+    {
+        typedef Clipper3r::IntPoint Point;
+        typedef Clipper3r::cInt Unit;
+        size_t edges = input.size();
+        if (edges < 3) return {};
+        else if (edges == 3) return input;
+
+        bool closed = false;
+        std::vector<Point> U, L;
+        U.reserve(1 + edges / 2); L.reserve(1 + edges / 2);
+
+        std::vector<Point> pts; pts.reserve(edges);
+        std::copy(input.cbegin(), input.cend(), std::back_inserter(pts));
+
+        auto fpt = pts.front(), lpt = pts.back();
+        if (fpt.X == lpt.X && fpt.Y == lpt.Y) {
+            closed = true; pts.pop_back();
+        }
+
+        std::sort(pts.begin(), pts.end(),[](const Point & v1, const Point & v2) {
+            auto x1 = v1.X, x2 = v2.X, y1 = v1.Y, y2 = v2.Y;
+            return x1 == x2 ? y1 < y2 : x1 < x2;
+        });
+
+        auto dir = [](const Point & p, const Point & q, const Point & r) {
+            return (q.Y - p.Y) * (r.X - p.X) - (q.X - p.X) * (r.Y - p.Y);
+        };
+
+        auto ik = pts.begin();
+        while (ik != pts.end()) {
+            while (U.size() > 1 && dir(U[U.size() - 2], U.back(), *ik) <= 0)
+                U.pop_back();
+            while (L.size() > 1 && dir(L[L.size() - 2], L.back(), *ik) >= 0)
+                L.pop_back();
+
+            U.emplace_back(*ik);
+            L.emplace_back(*ik);
+            ++ik;
+        }
+
+        Clipper3r::Path ret; 
+        ret.reserve(U.size() + L.size());
+        if (clockwise) {
+            for (auto it = U.begin(); it != std::prev(U.end()); ++it)
+                ret.emplace_back(*it);
+            for (auto it = L.rbegin(); it != std::prev(L.rend()); ++it)
+                ret.emplace_back(*it);
+            if (closed) ret.emplace_back(*std::prev(L.rend()));
+        } else {
+            for (auto it = L.begin(); it != std::prev(L.end()); ++it)
+                ret.emplace_back(*it);
+            for (auto it = U.rbegin(); it != std::prev(U.rend()); ++it)
+                ret.emplace_back(*it);
+            if (closed) ret.emplace_back(*std::prev(U.rend()));
+        }
+
+        return ret;
+    }
 
 	Clipper3r::Path PolygonPro::polygonConcaveHull(const Clipper3r::Path& input, double chi_factor)
 	{
