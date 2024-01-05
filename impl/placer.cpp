@@ -134,6 +134,123 @@ namespace nestplacer
         poly.Holes.swap(holes);
     }
 
+    double PointLineDistance(const Clipper3r::IntPoint& pt, const Clipper3r::IntPoint& lineStart, const Clipper3r::IntPoint& lineEnd)
+    {
+        double dx = lineEnd.X - lineStart.X;
+        double dy = lineEnd.Y - lineStart.Y;
+        //Normalize
+        double mag = std::pow(std::pow(dx, 2.0) + std::pow(dy, 2.0), 0.5);
+        if (mag > 0.0) {
+            dx /= mag; dy /= mag;
+        }
+
+        double pvx = pt.X - lineStart.X;
+        double pvy = pt.Y - lineStart.Y;
+        //Get dot product (project pv onto normalized direction)
+        double pvdot = dx * pvx + dy * pvy;
+
+        //Scale line direction vector
+        double dsx = pvdot * dx;
+        double dsy = pvdot * dy;
+
+        //Subtract this from pv
+        double ax = pvx - dsx;
+        double ay = pvy - dsy;
+
+        return std::pow(std::pow(ax, 2.0) + std::pow(ay, 2.0), 0.5);
+    }
+
+    void DouglasPeucker(const Clipper3r::Path& pointList, double epsilon, Clipper3r::Path& out)
+    {
+        if (pointList.size() < 2)
+            return;
+
+        // Find the point with the maximum distance from line between start and end
+        double dmax = 0.0;
+        size_t index = 0;
+        size_t end = pointList.size() - 1;
+        out.reserve(end + 1);
+        for (size_t i = 1; i < end; i++) {
+            double d = PointLineDistance(pointList[i], pointList[0], pointList[end]);
+            if (d > dmax) {
+                index = i;
+                dmax = d;
+            }
+        }
+
+        // If max distance is greater than epsilon, recursively simplify
+        if (dmax > epsilon) {
+            // Recursive call
+            Clipper3r::Path recResults1;
+            Clipper3r::Path recResults2;
+            Clipper3r::Path firstLine(pointList.begin(), pointList.begin() + index + 1);
+            Clipper3r::Path lastLine(pointList.begin() + index, pointList.end());
+            DouglasPeucker(firstLine, epsilon, recResults1);
+            DouglasPeucker(lastLine, epsilon, recResults2);
+
+            // Build the result list
+            out.assign(recResults1.begin(), recResults1.end() - 1);
+            out.insert(out.end(), recResults2.begin(), recResults2.end());
+            if (out.size() < 2)
+                return;
+        } else {
+            //Just return start and end path
+            out.clear();
+            out.push_back(pointList[0]);
+            out.push_back(pointList[end]);
+        }
+    }
+
+    Clipper3r::Path pathSimplyfy(const Clipper3r::Path& pointList, double epsilon = 1.0)
+    {
+        if (pointList.empty()) return pointList;
+        if (pointList.size() <= 20) return pointList;
+        Clipper3r::Path input = pointList;
+        if (input.front() != input.back()) {
+            input.emplace_back(input.front());
+        }
+        Clipper3r::Path path;
+        path.reserve(input.size());
+        for (size_t i = 0; i < input.size() - 1; ++i) {
+            const auto& start = input[i];
+            const auto& end = input[i + 1];
+            path.emplace_back();
+            path.back().X = (start.X + end.X) / 2.0;
+            path.back().Y = (start.Y + end.Y) / 2.0;
+        }
+        auto start = path.back();
+        auto end = path.front();
+        double dmax = PointLineDistance(input[0], start, end);
+        for (size_t i = 1; i < input.size() - 1; ++i) {
+            const auto& v = input[i];
+            const auto& start = path[i - 1];
+            const auto& end = path[i];
+            double d = PointLineDistance(v, start, end);
+            if (d > dmax) {
+                dmax = d;
+            }
+        }
+        Clipper3r::Path result;
+        DouglasPeucker(path, std::min(dmax, epsilon), result);
+        if (result.front() != result.back()) {
+            result.emplace_back(result.front());
+        }
+
+        return result;
+    }
+
+    Clipper3r::Polygon concaveSimplyfy(Clipper3r::Polygon& poly, double epsilon = 1.0)
+    {
+        Clipper3r::Polygon sh;
+        sh.Contour = pathSimplyfy(poly.Contour, epsilon);
+        sh.Holes.reserve(poly.Holes.size());
+        for (const auto& hole : poly.Holes) {
+            sh.Holes.emplace_back();
+            sh.Holes.back() = pathSimplyfy(hole, epsilon);
+        }
+        return sh;
+    }
+
     bool IntersectToBox(const libnest2d::Item& item, const libnest2d::Box& bbox)
     {
         const libnest2d::Box& box = item.boundingBox();
@@ -277,41 +394,57 @@ namespace nestplacer
         libnest2d::Box bbin = box_func(0);
         bool concaveCal = parameter.concaveCal;
         config.placer_config.calConcave = concaveCal;
+        libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
+        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
+        const double threshold = 0.5 * itemGap;
+
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             pitem->polygon(geometry);
-            Clipper3r::Polygon sh;
+            Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
-            libnest2d::Item item(sh);
-            if (!IntersectToBox(item, bbin)) {
-                results.emplace_back();
-                continue;
-            }
-            item.markAsFixedInBin(0);
             if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                libnest2d::Item item(poly);
+                if (!IntersectToBox(item, bbin)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.markAsFixedInBin(0);
                 item.convexCal(false);
+                inputs.emplace_back(item);
+            } else {
+                libnest2d::Item item(sh);
+                if (!IntersectToBox(item, bbin)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.markAsFixedInBin(0);
+                inputs.emplace_back(item);
             }
-            inputs.emplace_back(item);
         }
 		for (PlacerItem* pitem : actives){
 			nestplacer::PlacerItemGeometry geometry;
 			pitem->polygon(geometry);
-            Clipper3r::Polygon sh;
+            Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
-            libnest2d::Item item(sh);
             if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                libnest2d::Item item(poly);
                 item.convexCal(false);
+                inputs.emplace_back(item);
+            } else {
+                libnest2d::Item item(sh);
+                inputs.emplace_back(item);
             }
-            inputs.emplace_back(item);
 		}
-        libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
-        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
-        libnest2d::NestControl ctl;
         
+        libnest2d::NestControl ctl;
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
         config.placer_config.itemGap = itemGap;
+        
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);
         } else {
@@ -384,31 +517,48 @@ namespace nestplacer
         std::vector<libnest2d::Item> inputs;
         trimesh::box3 binBox = parameter.box;
         libnest2d::Box bbox = convertBox(binBox);
+        libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
+        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
+        const double threshold = 0.5 * itemGap;
         inputs.reserve(fixed.size());
         bool concaveCal = parameter.concaveCal;
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
             pitem->polygon(geometry);
-            Clipper3r::Polygon sh;
+            Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
-            libnest2d::Item item(sh);
-            if (!IntersectToBox(item, bbox)) {
-                results.emplace_back();
-                continue;
-            }
-            item.markAsFixedInBin(0);
             if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                libnest2d::Item item(poly);
+                if (!IntersectToBox(item, bbox)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.markAsFixedInBin(0);
                 item.convexCal(false);
+                inputs.emplace_back(item);
+            } else {
+                libnest2d::Item item(sh);
+                if (!IntersectToBox(item, bbox)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.markAsFixedInBin(0);
+                inputs.emplace_back(item);
             }
-            inputs.emplace_back(item);
         }
         {
             if (!active) return;
             libnest2d::Coord binArea = bbox.area();
             nestplacer::PlacerItemGeometry geometry;
             active->polygon(geometry);
-            Clipper3r::Polygon sh;
+            Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
+            if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                poly.Contour.swap(sh.Contour);
+                poly.Holes.swap(sh.Holes);
+            }
             libnest2d::Item item(sh);
             if (concaveCal) {
                 item.convexCal(false);
@@ -421,8 +571,7 @@ namespace nestplacer
                 inputs.emplace_back(item);
             }
         }
-        libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
-        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
+        
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;

@@ -6,9 +6,8 @@
 #include <vector>
 #include <iterator>
 #include "clipper3r/clipper.hpp"
-#include "polygonLib/polygonLib.h"
 #include <libnest2d/geometry_traits.hpp>
-#include "../tools/svgtools.hpp"
+
 namespace libnest2d {
 
 namespace __nfp {
@@ -773,25 +772,15 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& othe
 {
     using Vertex = TPoint<RawShape>;
     auto stcont = sh.Contour;
-    const Clipper3r::Path& stout = polygonLib::PolygonPro::concaveSimplyfy(stcont, eps);
-#ifdef _WIN32
-    #ifdef DEBUG
-
-    if (false) {
-        writer::ItemWriter<RawShape> itemWriter;
-        itemWriter.savePaths(stcont, stout, "D://test/paths");
-    }
-    #endif // DEBUG
-#endif // _WIN32
     auto orcont = other.Contour;
     Clipper3r::Path orbit;
     orbit.reserve(orcont.size());
     for (auto it = orcont.rbegin(); it != orcont.rend(); ++it) {
         orbit.emplace_back(*it);
     }
-    const Clipper3r::Path& orout = polygonLib::PolygonPro::concaveSimplyfy(orbit, eps);
+    
     Clipper3r::Paths paths, outPaths;
-    Clipper3r::MinkowskiDiff(orout, stout, paths);
+    Clipper3r::MinkowskiDiff(orbit, stcont, paths);
 
     outPaths.reserve(paths.size());
     for (auto& path : paths) {

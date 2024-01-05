@@ -77,7 +77,7 @@ inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance, const PolygonTag
     #define DISABLE_BOOST_OFFSET
 
     using Clipper3r::ClipperOffset;
-    using Clipper3r::jtSquare;
+    using Clipper3r::jtMiter;
     using Clipper3r::etClosedPolygon;
     using Clipper3r::Paths;
 
@@ -85,8 +85,8 @@ inline void offset(PolygonImpl& sh, TCoord<PointImpl> distance, const PolygonTag
     
     try {
         ClipperOffset offs;
-        offs.AddPath(sh.Contour, jtSquare, etClosedPolygon);
-        offs.AddPaths(sh.Holes, jtSquare, etClosedPolygon);
+        offs.AddPath(sh.Contour, jtMiter, etClosedPolygon);
+        offs.AddPaths(sh.Holes, jtMiter, etClosedPolygon);
         offs.Execute(result, static_cast<double>(distance));
     } catch (Clipper3r::clipperException &) {
         throw GeometryException(GeomErr::OFFSET);

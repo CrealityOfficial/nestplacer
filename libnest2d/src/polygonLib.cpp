@@ -1,7 +1,6 @@
 #include"polygonLib/polygonLib.h"
 #include "polygonLib/delaunator.h"
-#include "libnest2d/include/libnest2d/common.hpp"
-#include "../include/libnest2d/backends/clipper/clipper_polygon.hpp"
+
 #include <iostream>
 #include <set>
 
@@ -298,89 +297,18 @@ namespace polygonLib
 		return result;
 	}
 
-    Clipper3r::Path PolygonPro::polygonOffset(const Clipper3r::Path& input, double distance) 
+    Clipper3r::Paths PolygonPro::polygonUnit(const Clipper3r::Path& subject, const Clipper3r::Path& clip)
     {
-        using Clipper3r::ClipperOffset;
-        using Clipper3r::jtSquare;
-        using Clipper3r::etClosedPolygon;
-        using Clipper3r::Paths;
-        using Clipper3r::Polygon;
-        Paths result;
-        try {
-            ClipperOffset offs;
-            offs.AddPath(input, jtSquare, etClosedPolygon);
-            //offs.AddPaths(sh.Holes, jtSquare, etClosedPolygon);
-            offs.Execute(result, static_cast<double>(distance));
-        }
-        catch (Clipper3r::clipperException&) {
-            throw libnest2d::GeometryException(libnest2d::GeomErr::OFFSET);
-        }
-
-        // Offsetting reverts the orientation and also removes the last vertex
-        // so boost will not have a closed polygon.
-
-        bool found_the_contour = false;
-        Clipper3r::Polygon sh;
-        for (auto& r : result) {
-            if (Clipper3r::Orientation(r)) {
-                // We don't like if the offsetting generates more than one contour
-                // but throwing would be an overkill. Instead, we should warn the
-                // caller about the inability to create correct geometries
-                if (!found_the_contour) {
-                    sh.Contour = std::move(r);
-                    Clipper3r::ReversePath(sh.Contour);
-                    auto front_p = sh.Contour.front();
-                    sh.Contour.emplace_back(std::move(front_p));
-                    found_the_contour = true;
-                } else {
-                    libnest2d::dout() << "Warning: offsetting result is invalid!";
-                    /* TODO warning */
-                }
-            } else {
-                // TODO If there are multiple contours we can't be sure which hole
-                // belongs to the first contour. (But in this case the situation is
-                // bad enough to let it go...)
-                sh.Holes.emplace_back(std::move(r));
-                Clipper3r::ReversePath(sh.Holes.back());
-                auto front_p = sh.Holes.back().front();
-                sh.Holes.back().emplace_back(std::move(front_p));
-            }
-        }
-        return sh.Contour;
-    }
-
-    Clipper3r::Path PolygonPro::concaveSimplyfy(Clipper3r::Path& input, double epsilon)
-    {
-        Clipper3r::Path path;
-        if (input.empty()) return path;
-        if (input.front() != input.back()) 
-            input.emplace_back(input.front());
-
-        path.reserve(input.size() - 1);
-        for (size_t i = 0; i < input.size() - 1; ++i) {
-            const auto& start = input[i];
-            const auto& end = input[i + 1];
-            path.emplace_back();
-            path.back().X = 0.5 * (start.X + end.X);
-            path.back().Y = 0.5 * (start.Y + end.Y);
-        }
-        auto start = path.back();
-        auto end = path.front();
-        double dmax = PerpendicularDistance(input[0], start, end);
-        for (size_t i = 1; i < input.size() - 1; ++i) {
-            const auto& v = input[i];
-            const auto& start = path[i - 1];
-            const auto& end = path[i];
-            double d = PerpendicularDistance(v, start, end);
-            if (d > dmax) {
-                dmax = d;
-            }
-        }
-        Clipper3r::Path out, result;
-        //RamerDouglasPeucker(path, dmax, out);
-        Clipper3r::Path off = polygonOffset(path, dmax);
-        RamerDouglasPeucker(off, 250000, result);
-        return result;
+        Clipper3r::Clipper clipper(Clipper3r::ioReverseSolution);
+        using Clipper3r::ctUnion;
+        using Clipper3r::pftEvenOdd;
+        using Clipper3r::ptSubject;
+        using Clipper3r::ptClip;
+        Clipper3r::Paths paths;
+        clipper.AddPath(subject, ptSubject, true);
+        clipper.AddPath(clip, ptClip, true);
+        clipper.Execute(ctUnion, paths, pftEvenOdd);
+        return paths;
     }
 
     bool PolygonPro::PointInPolygon(const Clipper3r::IntPoint& pt, const Clipper3r::Path& input)

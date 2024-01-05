@@ -33,8 +33,7 @@ namespace polygonLib
 	public:
 		static Clipper3r::Path polygonSimplyfy(const Clipper3r::Path& input, double epsilon = 1.0);
 		static Clipper3r::Paths polygonSimplyfy(const Clipper3r::Paths& input, double epsilon = 1.0);
-        static Clipper3r::Path polygonOffset(const Clipper3r::Path& input, double distance = 1.0);
-        static Clipper3r::Path concaveSimplyfy(Clipper3r::Path& input, double epsilon = 1.0);
+        static Clipper3r::Paths polygonUnit(const Clipper3r::Path& subject, const Clipper3r::Path& clip);
         static bool PointInPolygon(const Clipper3r::IntPoint& pt, const Clipper3r::Path& input);
         static Clipper3r::Path polygonConvexHull2(const Clipper3r::Path& input, bool clockwise = false);
 
