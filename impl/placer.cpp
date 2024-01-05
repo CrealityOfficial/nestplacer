@@ -202,53 +202,7 @@ namespace nestplacer
             out.push_back(pointList[end]);
         }
     }
-
-    Clipper3r::Path pathSimplyfy(const Clipper3r::Path& pointList, double epsilon = 1.0)
-    {
-        if (pointList.empty()) return pointList;
-        if (pointList.size() <= 20) return pointList;
-        Clipper3r::Path input = pointList;
-        if (input.front() != input.back()) {
-            input.emplace_back(input.front());
-        }
-        Clipper3r::Path path;
-        path.reserve(input.size());
-        for (size_t i = 0; i < input.size() - 1; ++i) {
-            const auto& start = input[i];
-            const auto& end = input[i + 1];
-            path.emplace_back();
-            path.back().X = (start.X + end.X) / 2.0;
-            path.back().Y = (start.Y + end.Y) / 2.0;
-        }
-        auto start = path.back();
-        auto end = path.front();
-        double dmax = PointLineDistance(input[0], start, end);
-        for (size_t i = 1; i < input.size() - 1; ++i) {
-            const auto& v = input[i];
-            const auto& start = path[i - 1];
-            const auto& end = path[i];
-            double d = PointLineDistance(v, start, end);
-            if (d > dmax) {
-                dmax = d;
-            }
-        }
-        Clipper3r::Path result;
-        DouglasPeucker(path, std::min(dmax, epsilon), result);
-        if (result.front() != result.back()) {
-            result.emplace_back(result.front());
-        }
-#ifdef _WIN32
-#if _DEBUG
-        if (false) {
-            libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
-            itemWriter.savePaths(pointList, result, "D://test/paths");
-    }
-#endif
-#endif // _WIN32
-
-        return result;
-    }
-
+    
     Clipper3r::Path pathOffset(const Clipper3r::Path& input, double distance)
     {
 #define DISABLE_BOOST_OFFSET
@@ -263,7 +217,7 @@ namespace nestplacer
         Path contour = input;
         if (contour.front() != contour.back())
             contour.emplace_back(contour.front());
-        
+
         ClipperOffset offs;
         if (Clipper3r::Orientation(contour))
             offs.AddPath(contour, jtMiter, etClosedPolygon);
@@ -289,7 +243,7 @@ namespace nestplacer
                     auto front_p = sh.Contour.front();
                     sh.Contour.emplace_back(std::move(front_p));
                     found_the_contour = true;
-                } 
+                }
             } else {
                 // TODO If there are multiple contours we can't be sure which hole
                 // belongs to the first contour. (But in this case the situation is
@@ -322,6 +276,53 @@ namespace nestplacer
             }
         }
         return paths;
+    }
+
+    Clipper3r::Path pathSimplyfy(const Clipper3r::Path& pointList, double epsilon = 1.0)
+    {
+        if (pointList.empty()) return pointList;
+        if (pointList.size() <= 20) return pointList;
+        Clipper3r::Path input = pointList;
+        if (input.front() != input.back()) {
+            input.emplace_back(input.front());
+        }
+        Clipper3r::Path path;
+        path.reserve(input.size());
+        for (size_t i = 0; i < input.size() - 1; ++i) {
+            const auto& start = input[i];
+            const auto& end = input[i + 1];
+            path.emplace_back();
+            path.back().X = (start.X + end.X) / 2.0;
+            path.back().Y = (start.Y + end.Y) / 2.0;
+        }
+        auto start = path.back();
+        auto end = path.front();
+        double dmax = PointLineDistance(input[0], start, end);
+        for (size_t i = 1; i < input.size() - 1; ++i) {
+            const auto& v = input[i];
+            const auto& start = path[i - 1];
+            const auto& end = path[i];
+            double d = PointLineDistance(v, start, end);
+            if (d > dmax) {
+                dmax = d;
+            }
+        }
+        Clipper3r::Path result;
+        DouglasPeucker(pointList, std::min(dmax, epsilon), result);
+        //result = pathOffset(result, std::min(dmax, epsilon));
+        if (result.front() != result.back()) {
+            result.emplace_back(result.front());
+        }
+#ifdef _WIN32
+//#if _DEBUG
+        if (false) {
+            libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
+            itemWriter.savePaths(pointList, result, "D://test/paths");
+        }
+//#endif
+#endif // _WIN32
+
+        return result;
     }
 
     Clipper3r::Polygon concaveSimplyfy(Clipper3r::Polygon& poly, double epsilon = 1.0)

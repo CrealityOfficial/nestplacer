@@ -766,6 +766,57 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
 
     return Result(rsh, top_nfp);
 }
+template<class RawPath>
+void MinkowskiDiff(const RawPath& poly1, const RawPath& poly2, std::vector<RawPath>& solution)
+{
+    auto Minkowski = [&](const RawPath & poly, const RawPath & path,
+        std::vector<RawPath> & solution, bool isSum, bool isClosed) {
+        using Clipper3r::IntPoint;
+        int delta = (isClosed ? 1 : 0);
+        size_t polyCnt = poly.size();
+        size_t pathCnt = path.size();
+        std::vector<RawPath> pp;
+        pp.reserve(pathCnt);
+        if (isSum) {
+            for (size_t i = 0; i < pathCnt; ++i) {
+                RawPath p;
+                p.reserve(polyCnt);
+                for (size_t j = 0; j < poly.size(); ++j)
+                    p.emplace_back(IntPoint(path[i].X + poly[j].X, path[i].Y + poly[j].Y));
+                pp.emplace_back(p);
+            }
+        } else {
+            for (size_t i = 0; i < pathCnt; ++i) {
+                RawPath p;
+                p.reserve(polyCnt);
+                for (size_t j = 0; j < poly.size(); ++j)
+                    p.emplace_back(IntPoint(path[i].X - poly[j].X, path[i].Y - poly[j].Y));
+                pp.emplace_back(p);
+            }
+        }
+        solution.clear();
+        solution.reserve((pathCnt + delta) * (polyCnt + 1));
+        for (size_t i = 0; i < pathCnt - 1 + delta; ++i) {
+            for (size_t j = 0; j < polyCnt; ++j) {
+                RawPath quad;
+                quad.reserve(4);
+                quad.emplace_back(pp[i % pathCnt][j % polyCnt]);
+                quad.emplace_back(pp[(i + 1) % pathCnt][j % polyCnt]);
+                quad.emplace_back(pp[(i + 1) % pathCnt][(j + 1) % polyCnt]);
+                quad.emplace_back(pp[i % pathCnt][(j + 1) % polyCnt]);
+                if (!Clipper3r::Orientation(quad)) Clipper3r::ReversePath(quad);
+                solution.emplace_back(quad);
+            }
+        }
+    };
+    Minkowski(poly1, poly2, solution, false, true);
+    Clipper3r::Clipper c;
+    using Clipper3r::ptSubject;
+    using Clipper3r::ctUnion;
+    using Clipper3r::pftNonZero;
+    c.AddPaths(solution, ptSubject, true);
+    c.Execute(ctUnion, solution, pftNonZero, pftNonZero);
+}
 
 template<class RawShape>
 NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& other)
@@ -780,6 +831,7 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& othe
     }
     
     Clipper3r::Paths paths, outPaths;
+    //MinkowskiDiff<Clipper3r::Path>(orbit, stcont, paths);
     Clipper3r::MinkowskiDiff(orbit, stcont, paths);
 
     outPaths.reserve(paths.size());
