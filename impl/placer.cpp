@@ -1,7 +1,9 @@
+#include <clipper3r/clipper.hpp>
+#include "../libnest2d/tools/svgtools.hpp"
 #include "msbase/utils/trimeshserial.h"
 #include "nestplacer/placer.h"
-#include "data.h"
 #include "debug.h"
+
 
 #define INT2UM(x) (static_cast<double>(x) / 1000000.0)
 #define UM2INT(x) (static_cast<Clipper3r::cInt>((x) * 1000000.0 + 0.5 * (double((x) > 0) - ((x) < 0))))
@@ -235,8 +237,91 @@ namespace nestplacer
         if (result.front() != result.back()) {
             result.emplace_back(result.front());
         }
+#ifdef _WIN32
+#if _DEBUG
+        if (false) {
+            libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
+            itemWriter.savePaths(pointList, result, "D://test/paths");
+    }
+#endif
+#endif // _WIN32
 
         return result;
+    }
+
+    Clipper3r::Path pathOffset(const Clipper3r::Path& input, double distance)
+    {
+#define DISABLE_BOOST_OFFSET
+
+        using Clipper3r::ClipperOffset;
+        using Clipper3r::jtMiter;
+        using Clipper3r::etClosedPolygon;
+        using Clipper3r::Polygon;
+        using Clipper3r::Paths;
+        using Clipper3r::Path;
+        Paths result;
+        Path contour = input;
+        if (contour.front() != contour.back())
+            contour.emplace_back(contour.front());
+        
+        ClipperOffset offs;
+        if (Clipper3r::Orientation(contour))
+            offs.AddPath(contour, jtMiter, etClosedPolygon);
+        else {
+            Paths holes;
+            holes.emplace_back(contour);
+            offs.AddPaths(holes, jtMiter, etClosedPolygon);
+        }
+        offs.Execute(result, static_cast<double>(distance));
+
+        // Offsetting reverts the orientation and also removes the last vertex
+        // so boost will not have a closed polygon.
+        Polygon sh;
+        bool found_the_contour = false;
+        for (auto& r : result) {
+            if (Clipper3r::Orientation(r)) {
+                // We don't like if the offsetting generates more than one contour
+                // but throwing would be an overkill. Instead, we should warn the
+                // caller about the inability to create correct geometries
+                if (!found_the_contour) {
+                    sh.Contour = std::move(r);
+                    Clipper3r::ReversePath(sh.Contour);
+                    auto front_p = sh.Contour.front();
+                    sh.Contour.emplace_back(std::move(front_p));
+                    found_the_contour = true;
+                } 
+            } else {
+                // TODO If there are multiple contours we can't be sure which hole
+                // belongs to the first contour. (But in this case the situation is
+                // bad enough to let it go...)
+                sh.Holes.emplace_back(std::move(r));
+                Clipper3r::ReversePath(sh.Holes.back());
+                auto front_p = sh.Holes.back().front();
+                sh.Holes.back().emplace_back(std::move(front_p));
+            }
+        }
+        return sh.Contour;
+    }
+
+    Clipper3r::Paths pathUnit(const Clipper3r::Path& subject, const Clipper3r::Path& clip)
+    {
+        Clipper3r::Clipper clipper(Clipper3r::ioReverseSolution);
+        using Clipper3r::ctUnion;
+        using Clipper3r::pftEvenOdd;
+        using Clipper3r::ptSubject;
+        using Clipper3r::ptClip;
+        Clipper3r::Paths paths;
+        bool valid = false;
+        valid &= clipper.AddPath(subject, ptSubject, true);
+        valid &= clipper.AddPath(clip, ptClip, true);
+        valid &= clipper.Execute(ctUnion, paths, pftEvenOdd);
+        if (valid) {
+            for (auto& path : paths) {
+                if (path.front() != path.back())
+                    path.emplace_back(path.front());
+            }
+        }
+        return paths;
     }
 
     Clipper3r::Polygon concaveSimplyfy(Clipper3r::Polygon& poly, double epsilon = 1.0)
@@ -443,7 +528,6 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
-        config.placer_config.itemGap = itemGap;
         
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);
@@ -577,7 +661,6 @@ namespace nestplacer
         config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
         config.placer_config.binItemGap = edgeGap;
-        config.placer_config.itemGap = itemGap;
         config.placer_config.calConcave = concaveCal;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.align_mode);

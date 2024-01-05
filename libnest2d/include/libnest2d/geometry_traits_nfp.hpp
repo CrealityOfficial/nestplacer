@@ -768,7 +768,7 @@ NfpResult<RawShape> nfpSimpleSimple(const RawShape& cstationary,
 }
 
 template<class RawShape>
-NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& other, double eps = 1E5)
+NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& other)
 {
     using Vertex = TPoint<RawShape>;
     auto stcont = sh.Contour;
@@ -828,7 +828,6 @@ NfpResult<RawShape> nfpConcaveToConcave(const RawShape& sh, const RawShape& othe
 // or better NFP implementation
 template<class RawShape, NfpLevel nfptype>
 struct NfpImpl {
-    double epsilon = 1E5;
     NfpResult<RawShape> operator()(const RawShape& sh, const RawShape& other)
     {
         /*static_assert(nfptype == NfpLevel::CONVEX_ONLY,
@@ -839,16 +838,15 @@ struct NfpImpl {
         if (nfptype == NfpLevel::CONVEX_ONLY)
             return nfpConvexOnly(sh, other);
         else
-            return nfpConcaveToConcave(sh, other, epsilon);
+            return nfpConcaveToConcave(sh, other);
     }
 };
 
 /// Helper function to get the NFP
 template<NfpLevel nfptype, class RawShape>
-inline NfpResult<RawShape> noFitPolygon(const RawShape& sh, const RawShape& other, double eps = 1E5)
+inline NfpResult<RawShape> noFitPolygon(const RawShape& sh, const RawShape& other)
 {
     NfpImpl<RawShape, nfptype> nfps;
-    nfps.epsilon = eps;
     return nfps(sh, other);
 }
 

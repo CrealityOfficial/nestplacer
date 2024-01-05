@@ -189,7 +189,6 @@ struct NfpPConfig {
     }
     
     Coord binItemGap = 0;
-    Coord itemGap = 0;
     bool needNewBin = false;
     inline bool needAlign() const 
     {
@@ -814,22 +813,21 @@ private:
         nfps.resize(items_.size());
         auto& orb = trsh.transformedShape();
         bool orbconvex = trsh.isContourConvex();
-        const double dist = 0.12 * config_.itemGap;
         // /////////////////////////////////////////////////////////////////////
         std::launch policy = std::launch::deferred;
         if (config_.parallel) policy |= std::launch::async;
 
         __parallel::enumerate(items_.begin(), items_.end(),
-            [&nfps, &trsh, &orbconvex, &dist](const Item & sh, size_t n) {
+            [&nfps, &trsh, &orbconvex](const Item & sh, size_t n) {
             auto& stat = sh.transformedShape();
             auto& orb = trsh.transformedShape();
             NfpResult<RawShape> subnfp;
             if (sh.isContourConvex() && orbconvex)
                 subnfp = nfp::noFitPolygon<nfp::NfpLevel::CONVEX_ONLY>(stat, orb);
             else if (orbconvex)
-                subnfp = nfp::noFitPolygon<nfp::NfpLevel::ONE_CONVEX>(stat, orb, dist);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::ONE_CONVEX>(stat, orb);
             else
-                subnfp = nfp::noFitPolygon<nfp::NfpLevel::BOTH_CONCAVE>(stat, orb, dist);
+                subnfp = nfp::noFitPolygon<nfp::NfpLevel::BOTH_CONCAVE>(stat, orb);
 
             correctNfpPosition(subnfp, sh, trsh);
             nfps[n] = subnfp.first;

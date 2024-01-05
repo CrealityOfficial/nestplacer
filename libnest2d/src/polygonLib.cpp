@@ -297,20 +297,6 @@ namespace polygonLib
 		return result;
 	}
 
-    Clipper3r::Paths PolygonPro::polygonUnit(const Clipper3r::Path& subject, const Clipper3r::Path& clip)
-    {
-        Clipper3r::Clipper clipper(Clipper3r::ioReverseSolution);
-        using Clipper3r::ctUnion;
-        using Clipper3r::pftEvenOdd;
-        using Clipper3r::ptSubject;
-        using Clipper3r::ptClip;
-        Clipper3r::Paths paths;
-        clipper.AddPath(subject, ptSubject, true);
-        clipper.AddPath(clip, ptClip, true);
-        clipper.Execute(ctUnion, paths, pftEvenOdd);
-        return paths;
-    }
-
     bool PolygonPro::PointInPolygon(const Clipper3r::IntPoint& pt, const Clipper3r::Path& input)
     {
         bool inside = false;
