@@ -1748,9 +1748,16 @@ private:
                         [](const OptResult& r1, const OptResult& r2) {
                         return r1.score < r2.score;
                     };
-
-                    auto mr = *std::min_element(results.begin(), results.end(),
-                        resultcomp);
+                    OptResult mr;
+                    mr.score = std::numeric_limits<double>::max();
+                    for (auto& result : results) {
+                        if (result.score < mr.score) {
+                            mr.score = result.score;
+                            mr.optimum = result.optimum;
+                        }
+                    }
+                    /*auto mr = *std::min_element(results.begin(), results.end(),
+                        resultcomp);*/
 
                     if (mr.score < best_score) {
                         Optimum o(std::get<0>(mr.optimum), ch, -1);
