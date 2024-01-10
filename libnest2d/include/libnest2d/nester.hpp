@@ -354,7 +354,7 @@ public:
     {
         RawShape cpy = sh_;
         if (has_rotation_) sl::rotate(cpy, rotation_);
-        PointImpl trans_data;
+        Vertex trans_data;
         trans_data.X = translation_.X;
         trans_data.Y = translation_.Y;
         if (has_translation_) sl::translate(cpy, trans_data);
