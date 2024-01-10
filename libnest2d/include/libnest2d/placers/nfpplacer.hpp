@@ -1778,19 +1778,21 @@ private:
                         // TODO : use parallel for
                         __parallel::enumerate(cache.corners(hidx).begin(),
                             cache.corners(hidx).end(),
-                            [&results, &item, &nfpoint,
-                            &rofn, ch, hidx, accuracy]
+                            [&results, &item, &nfpoint,&nfpPointCheck, &rofn, ch, hidx, accuracy]
                         (double pos, size_t n)
                             {
                                 Optimizer solver(accuracy);
 
                                 Item itmcpy = item;
                                 auto hole_ofn =
-                                    [&rofn, &nfpoint, ch, hidx, &itmcpy]
+                                    [&rofn, &nfpoint,&nfpPointCheck, ch, hidx, &itmcpy]
                                 (double pos)
                                 {
                                     Optimum opt(pos, ch, hidx);
-                                    return rofn(nfpoint(opt), itmcpy);
+                                    auto np = nfpoint(opt);
+                                    if (nfpPointCheck(np))
+                                        return rofn(np, itmcpy);
+                                    else return std::numeric_limits<double>::max();
                                 };
 
                                 try {
@@ -1804,10 +1806,18 @@ private:
                                     derr() << "ERROR: " << e.what() << "\n";
                                 }
                             }, policy);
-
-                        auto hmr = *std::min_element(results.begin(),
+                        
+                        OptResult hmr;
+                        hmr.score = std::numeric_limits<double>::max();
+                        for (auto& result : results) {
+                            if (result.score < hmr.score) {
+                                hmr.score = result.score;
+                                hmr.optimum = result.optimum;
+                            }
+                        }
+                        /*auto hmr = *std::min_element(results.begin(),
                             results.end(),
-                            resultcomp);
+                            resultcomp);*/
 
                         if (hmr.score < best_score) {
                             Optimum o(std::get<0>(hmr.optimum),
