@@ -69,8 +69,8 @@ namespace nestplacer
 	/// <param name="results"></param>   result rt, same size with actives
 	/// <param name="binExtendStrategy"></param>  bin extend strategy
 	/// <returns></returns>
-	NESTPLACER_API void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy);
+    NESTPLACER_API void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
+        const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer = nullptr);
 
 	/// <summary>
 	/// 
@@ -81,7 +81,7 @@ namespace nestplacer
 	/// <param name="results"></param>  result clone positions
 	/// <returns></returns>
 	NESTPLACER_API void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results);
+		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, ccglobal::Tracer* tracer = nullptr);
 
 	class NESTPLACER_API YDefaultBinExtendStrategy : public BinExtendStrategy
 	{
