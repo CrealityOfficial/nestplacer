@@ -34,6 +34,7 @@ namespace nestplacer
 		float binItemGap = 1.0f;
 		bool rotate = false;
 		float rotateAngle = 30.0f;
+        int startPoint = 0;
         /*
         @param align_mode:
         0 - CENER, 1 - BOTTOM_LEFT, 2 - BOTTOM_RIGHT,
@@ -41,7 +42,7 @@ namespace nestplacer
         if is DONT_ALIGN, is same with no needAlign.
         */
         bool needAlign = false;
-        int align_mode = 0;
+        int alignMode = 0;
         bool concaveCal = false;
         trimesh::box3 box;
 		ccglobal::Tracer* tracer = nullptr;
@@ -70,7 +71,7 @@ namespace nestplacer
 	/// <param name="binExtendStrategy"></param>  bin extend strategy
 	/// <returns></returns>
     NESTPLACER_API void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
-        const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer = nullptr);
+        const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy);
 
 	/// <summary>
 	/// 
@@ -81,7 +82,7 @@ namespace nestplacer
 	/// <param name="results"></param>  result clone positions
 	/// <returns></returns>
 	NESTPLACER_API void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, ccglobal::Tracer* tracer = nullptr);
+		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results);
 
 	class NESTPLACER_API YDefaultBinExtendStrategy : public BinExtendStrategy
 	{

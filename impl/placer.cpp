@@ -52,14 +52,15 @@ namespace nestplacer
             msbase::saveGeometrys(out, ageometrys);
             ccglobal::cxndSaveT(out, param.box.min);
             ccglobal::cxndSaveT(out, param.box.max);
-
+            
+            ccglobal::cxndSaveT(out, param.concaveCal);
             ccglobal::cxndSaveT(out, param.itemGap);
             ccglobal::cxndSaveT(out, param.binItemGap);
             ccglobal::cxndSaveT(out, param.rotate);
             ccglobal::cxndSaveT(out, param.rotateAngle);
             ccglobal::cxndSaveT(out, param.needAlign);
-            ccglobal::cxndSaveT(out, param.align_mode);
-            
+            ccglobal::cxndSaveT(out, param.alignMode);
+            ccglobal::cxndSaveT(out, param.startPoint);
             return true;
         }
 
@@ -88,12 +89,14 @@ namespace nestplacer
                 ccglobal::cxndLoadT(in, param.box.min);
                 ccglobal::cxndLoadT(in, param.box.max);
 
+                ccglobal::cxndLoadT(in, param.concaveCal);
                 ccglobal::cxndLoadT(in, param.itemGap);
                 ccglobal::cxndLoadT(in, param.binItemGap);
                 ccglobal::cxndLoadT(in, param.rotate);
                 ccglobal::cxndLoadT(in, param.rotateAngle);
                 ccglobal::cxndLoadT(in, param.needAlign);
-                ccglobal::cxndLoadT(in, param.align_mode);
+                ccglobal::cxndLoadT(in, param.alignMode);
+                ccglobal::cxndLoadT(in, param.startPoint);
                 return true;
             }
             return false;
@@ -417,7 +420,7 @@ namespace nestplacer
             actives.emplace_back(pitem);
         }
         PlacerParameter param = input.param;
-        return place(fixed, actives, param, results, binExtendStrategy, tracer);
+        return place(fixed, actives, param, results, binExtendStrategy);
     }
 
     void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy,  ccglobal::Tracer* tracer)
@@ -440,11 +443,11 @@ namespace nestplacer
         }
         PlacerItem* active = actives.front();
         PlacerParameter param = input.param;
-        return extendFill(fixed, active, param, results, tracer);
+        return extendFill(fixed, active, param, results);
     }
 
     void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer)
+		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy)
 	{
         if (!parameter.fileName.empty() && (!fixed.empty() || !actives.empty())) {
             NestInput input;
@@ -526,12 +529,12 @@ namespace nestplacer
 		}
         
         libnest2d::NestControl ctl;
-        config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
-        config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        config.placer_config.setStartPoint(parameter.startPoint);
+        config.placer_config.setNewStartPoint(parameter.startPoint);
         config.placer_config.binItemGap = edgeGap;
         
         if (parameter.needAlign) {
-            config.placer_config.setAlignment(parameter.align_mode);
+            config.placer_config.setAlignment(parameter.alignMode);
         } else {
             config.placer_config.alignment= libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
@@ -557,14 +560,14 @@ namespace nestplacer
         }
         
         const size_t size = inputs.size();
-        ctl.progressfn = [&size, tracer](int remain) {
-            if (tracer) {
-                tracer->progress((float)((int)size - remain) / (float)size);
+        ctl.progressfn = [&size, &parameter](int remain) {
+            if (parameter.tracer) {
+                parameter.tracer->progress((float)((int)size - remain) / (float)size);
             }
         };
-        ctl.stopcond = [tracer]()->bool {
-            if (tracer)
-                return tracer->interrupt();
+        ctl.stopcond = [&parameter]()->bool {
+            if (parameter.tracer)
+                return parameter.tracer->interrupt();
             return false;
         };
 
@@ -587,7 +590,7 @@ namespace nestplacer
 	}
 
 	void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active, const PlacerParameter& parameter, 
-        std::vector<PlacerResultRT>& results, ccglobal::Tracer* tracer)
+        std::vector<PlacerResultRT>& results)
 	{
         if (!parameter.fileName.empty() && (!fixed.empty() || !active)) {
             NestInput input;
@@ -671,12 +674,12 @@ namespace nestplacer
         
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
-        config.placer_config.starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
-        config.placer_config.new_starting_point = libnest2d::NfpPlacer::Config::Alignment::CENTER;
+        config.placer_config.setStartPoint(parameter.startPoint);
+        config.placer_config.setNewStartPoint(parameter.startPoint);
         config.placer_config.binItemGap = edgeGap;
         config.placer_config.calConcave = concaveCal;
         if (parameter.needAlign) {
-            config.placer_config.setAlignment(parameter.align_mode);
+            config.placer_config.setAlignment(parameter.alignMode);
         } else {
             config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
@@ -708,14 +711,14 @@ namespace nestplacer
         }
 
         const size_t size = inputs.size();
-        ctl.progressfn = [&size, tracer](int remain) {
-            if (tracer) {
-                tracer->progress((float)((int)size - remain) / (float)size);
+        ctl.progressfn = [&size, &parameter](int remain) {
+            if (parameter.tracer) {
+                parameter.tracer->progress((float)((int)size - remain) / (float)size);
             }
         };
-        ctl.stopcond = [tracer]()->bool {
-            if (tracer)
-                return tracer->interrupt();
+        ctl.stopcond = [&parameter]()->bool {
+            if (parameter.tracer)
+                return parameter.tracer->interrupt();
             return false;
         };
 
