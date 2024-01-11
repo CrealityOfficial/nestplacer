@@ -417,7 +417,7 @@ namespace nestplacer
             actives.emplace_back(pitem);
         }
         PlacerParameter param = input.param;
-        return place(fixed, actives, param, results, binExtendStrategy);
+        return place(fixed, actives, param, results, binExtendStrategy, tracer);
     }
 
     void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy,  ccglobal::Tracer* tracer)
@@ -440,11 +440,11 @@ namespace nestplacer
         }
         PlacerItem* active = actives.front();
         PlacerParameter param = input.param;
-        return extendFill(fixed, active, param, results);
+        return extendFill(fixed, active, param, results, tracer);
     }
 
     void place(const std::vector<PlacerItem*>& fixed, const std::vector<PlacerItem*>& actives,
-		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy)
+		const PlacerParameter& parameter, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer)
 	{
         if (!parameter.fileName.empty() && (!fixed.empty() || !actives.empty())) {
             NestInput input;
@@ -555,6 +555,18 @@ namespace nestplacer
             config.placer_config.rotations.clear();
             config.placer_config.rotations.emplace_back(0);
         }
+        
+        const size_t size = inputs.size();
+        ctl.progressfn = [&size, tracer](int remain) {
+            if (tracer) {
+                tracer->progress((float)((int)size - remain) / (float)size);
+            }
+        };
+        ctl.stopcond = [tracer]()->bool {
+            if (tracer)
+                return tracer->interrupt();
+            return false;
+        };
 
         size_t bins = nest(inputs, bbin, itemGap, config, ctl);
 
@@ -575,7 +587,7 @@ namespace nestplacer
 	}
 
 	void extendFill(const std::vector<PlacerItem*>& fixed, PlacerItem* active, const PlacerParameter& parameter, 
-        std::vector<PlacerResultRT>& results)
+        std::vector<PlacerResultRT>& results, ccglobal::Tracer* tracer)
 	{
         if (!parameter.fileName.empty() && (!fixed.empty() || !active)) {
             NestInput input;
@@ -694,6 +706,18 @@ namespace nestplacer
             config.placer_config.rotations.clear();
             config.placer_config.rotations.emplace_back(0);
         }
+
+        const size_t size = inputs.size();
+        ctl.progressfn = [&size, tracer](int remain) {
+            if (tracer) {
+                tracer->progress((float)((int)size - remain) / (float)size);
+            }
+        };
+        ctl.stopcond = [tracer]()->bool {
+            if (tracer)
+                return tracer->interrupt();
+            return false;
+        };
 
         size_t bins = nest(inputs, bbox, itemGap, config, ctl);
 
