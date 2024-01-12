@@ -317,12 +317,12 @@ namespace nestplacer
             result.emplace_back(result.front());
         }
 #ifdef _WIN32
-//#if _DEBUG
+#if _DEBUG
         if (false) {
             libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
             itemWriter.savePaths(pointList, result, "D://test/paths");
         }
-//#endif
+#endif
 #endif // _WIN32
 
         return result;

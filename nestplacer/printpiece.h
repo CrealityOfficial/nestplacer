@@ -13,17 +13,19 @@ namespace nestplacer {
     NESTPLACER_API PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp);
 
     enum class ContactState :int {
-        INTERSECT = 0,
-        TANGENT,
-        SEPARATE
+        INTERSECT = 0, ///<相交
+        TANGENT,       ///<相切
+        SEPARATE,      ///<相离
+        //INCLUDE,       ///<包含
     };
 
     struct PR_RESULT {
         int first;
         int second;
+        double dist;
         ContactState state;
     };
 
-    NESTPLACER_API void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results);
+    NESTPLACER_API void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calDist = false);
 }
 #endif //PRINT_PIECE_H
