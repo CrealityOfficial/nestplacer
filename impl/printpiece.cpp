@@ -1,5 +1,6 @@
 #include "nestplacer/printpiece.h"
 #include "libnest2d/libnest2d.hpp"
+#include "msbase/utils/trimeshserial.h"
 #include "../libnest2d/tools/svgtools.hpp"
 
 #define INT2UM(x) (static_cast<double>(x) / 1000000.0)
@@ -18,8 +19,63 @@ namespace nestplacer {
         return trimesh::vec3(INT2UM(pt.X), INT2UM(pt.Y), 0);
     }
 
-    PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp)
+    class PRInput : public ccglobal::Serializeable {
+    public:
+        std::vector<nestplacer::PR_Polygon> polys;
+        trimesh::vec3 point;
+        bool calDist = false;
+        
+        PRInput() {}
+        ~PRInput() {}
+
+        int version() override { return 0; }
+
+        bool save(std::fstream& out, ccglobal::Tracer* tracer) override
+        {
+            msbase::CXNDGeometrys geometrys;
+            geometrys.reserve(polys.size());
+            for (auto& poly : polys) {
+                msbase::CXNDGeometry geo;
+                geo.contour.swap(poly);
+                geometrys.emplace_back(geo);
+            }
+            msbase::saveGeometrys(out, geometrys);
+            ccglobal::cxndSaveT(out, point);
+            ccglobal::cxndSaveT(out, calDist);
+            return true;
+        }
+
+        bool load(std::fstream& in, int ver, ccglobal::Tracer* tracer) override
+        {
+            if (ver == 0) {
+                msbase::CXNDGeometrys geometrys;
+                msbase::loadGeometrys(in, geometrys);
+                polys.reserve(geometrys.size());
+                for (auto& geometry : geometrys) {
+                    nestplacer::PR_Polygon poly;
+                    poly.swap(geometry.contour);
+                    polys.emplace_back(poly);
+                }
+                ccglobal::cxndLoadT(in, point);
+                ccglobal::cxndLoadT(in, calDist);
+                return true;
+            }
+            return false;
+        }
+    };
+
+    PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp, std::string* fileName)
     {
+        if (fileName) {
+            PRInput input;
+            std::vector<PR_Polygon> polys;
+            polys.emplace_back(station);
+            polys.emplace_back(orbit);
+            input.polys = polys;
+            input.point = mp;
+            input.calDist = false;
+            ccglobal::cxndSave(input, *fileName, nullptr);
+        }
         PR_Polygon result;
         //º∆À„
         std::vector<trimesh::vec3> tranBs;
@@ -307,21 +363,28 @@ namespace nestplacer {
 
         const Clipper3r::Polygon& poly = subnfp.first;
         const Clipper3r::Path contour = poly.Contour;
-        if (pointInPolygon(rv, contour)) {
-            res.state = ContactState::INTERSECT;
-            if (calDist) res.dist = -getPointPolygonDist(rv, poly);
-        } else if (pointOnPolygon(rv, poly)) {
+        if (pointOnPolygon(rv, poly)) {
             res.state = ContactState::TANGENT;
             if (calDist) res.dist = getPointPolygonDist(rv, poly);
+        } else if (pointInPolygon(rv, contour)) {
+            res.state = ContactState::INTERSECT;
+            if (calDist) res.dist = -getPointPolygonDist(rv, poly);
         } else {
-            if (calDist) res.dist = getPointPolygonDist(rv, poly);
             res.state = ContactState::SEPARATE;
+            if (calDist) res.dist = getPointPolygonDist(rv, poly);
         }
         return res;
     }
 
-    void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calDist)
+    void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calDist, std::string* fileName)
     {
+        if (fileName) {
+            PRInput input;
+            input.polys = polys;
+            input.calDist = calDist;
+            //input.point = trimesh::vec3(0, 0, 0);
+            ccglobal::cxndSave(input, *fileName, nullptr);
+        }
         const size_t nums = polys.size();
         std::vector<libnest2d::Item> inputs;
         inputs.reserve(nums);
