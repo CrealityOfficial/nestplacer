@@ -164,6 +164,50 @@ public:
         saveItem(cpy, filename, color, bWritePoints);
     }
 
+    void saveShapes(const Shapes& shapes, const std::string& filename, int color = 5, bool bWritePoints = false)
+    {
+        /*std::string filepath = "D:/test";
+        std::ifstream file(filepath);
+        if (!file.good()) return;*/
+        std::string svgFile = filename + ".svg";
+        svg::Polygons polys = convertPolygons(shapes);
+        svg::AABB aabb = getAABB(polys);
+        svg::SVG svg(svgFile, aabb);
+        svg.setFlipY(true);
+        if (bWritePoints) svg.writePoints(polys, true, 1.0, svg::SVG::Color::BLUE);
+        auto co = svg::SVG::Color(color % 10);
+        svg.writePolygons(polys, co, 0.2);
+    }
+
+    void saveShapes(const RawShape& rsh, const Shapes& shapesA, const Shapes& shapesB, const Shapes& merge, const std::string& filename, bool bWritePoints = false)
+    {
+        /*std::string filepath = "D:/test";
+        std::ifstream file(filepath);
+        if (!file.good()) return;*/
+        std::string svgFile = filename + ".svg";
+        svg::Polygons polyRs = convertPolygons(rsh);
+        svg::Polygons polyAs = convertPolygons(shapesA);
+        svg::Polygons polyBs = convertPolygons(shapesB);
+        svg::Polygons polyMs = convertPolygons(merge);
+        svg::Polygons polys;
+        polys.paths.insert(polys.paths.end(), polyRs.paths.begin(), polyRs.paths.end());
+        polys.paths.insert(polys.paths.end(), polyAs.paths.begin(), polyAs.paths.end());
+        polys.paths.insert(polys.paths.end(), polyBs.paths.begin(), polyBs.paths.end());
+        polys.paths.insert(polys.paths.end(), polyMs.paths.begin(), polyMs.paths.end());
+        svg::AABB aabb = getAABB(polys);
+        svg::SVG svg(svgFile, aabb);
+        svg.setFlipY(true);
+        svg.writePolygons(polyRs, svg::SVG::Color::RED, 0.3);
+        svg.writePolygons(polyAs, svg::SVG::Color::BLACK, 0.2);
+        //if (bWritePoints) svg.writePoints(shpolys, true, 1.0, svg::SVG::Color::RAINBOW);
+
+        svg.writePolygons(polyBs, svg::SVG::Color::GREEN, 0.2);
+        //if (bWritePoints) svg.writePoints(shpolys, true, 1.0, svg::SVG::Color::RAINBOW);
+
+        svg.writePolygons(polyMs, svg::SVG::Color::BLUE, 0.2);
+        //if (bWritePoints) svg.writePoints(orpolys, true, 1.0, svg::SVG::Color::RAINBOW);
+    }
+
     void saveItem(const Item& item, const std::string& filename, int color = 5, bool bWritePoints = false)
     {
         std::string filepath = "D:/test";
@@ -176,7 +220,7 @@ public:
         svg::Polygons polys = convertPolygons(item);
         if (bWritePoints) svg.writePoints(polys, true, 1.0, svg::SVG::Color::BLUE);
         auto co = svg::SVG::Color(color % 10);
-        svg.writePolygons(polys, co, 2);
+        svg.writePolygons(polys, co, 0.3);
     }
 
     /*void saveBox(const Box& box, const std::string& filename, int color = 5, bool bWritePoints = false)

@@ -6,6 +6,8 @@
 #define UM2INT(x) (static_cast<Clipper3r::cInt>((x) * 1000000.0 + 0.5 * (double((x) > 0) - ((x) < 0))))
 
 namespace nestplacer {
+    using Vertex = libnest2d::TPoint<Clipper3r::Polygon>;
+
     Clipper3r::IntPoint convertIntPoint(const trimesh::vec3& pt)
     {
         return Clipper3r::IntPoint(UM2INT(pt.x), UM2INT(pt.y));
@@ -19,25 +21,72 @@ namespace nestplacer {
     PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp)
     {
         PR_Polygon result;
-        std::vector<trimesh::vec3> trans;
-        trans.reserve(orbit.size());
+        //º∆À„
+        std::vector<trimesh::vec3> tranBs;
+        tranBs.reserve(orbit.size());
         for (const auto& p : orbit) {
-            trans.emplace_back(p - mp);
+            tranBs.emplace_back(p - mp);
         }
-        libnest2d::TMultiShape<Clipper3r::Polygon> polys;
-        polys.reserve(trans.size());
-        const size_t nums = station.size();
-        for (const auto& tr : trans) {
+        libnest2d::TMultiShape<Clipper3r::Polygon> transApolys;
+        transApolys.reserve(tranBs.size());
+        const size_t snums = station.size();
+        for (const auto& tr : tranBs) {
             Clipper3r::Path path;
-            path.reserve(nums);
+            path.reserve(snums);
             for (const auto& p : station) {
                 path.emplace_back(convertIntPoint(p + tr));
             }
             Clipper3r::Polygon poly(path);
-            polys.emplace_back(poly);
+            transApolys.emplace_back(poly);
         }
+        //º∆À„
+        std::vector<trimesh::vec3> tranAs;
+        tranAs.reserve(station.size());
+        for (const auto& p : station) {
+            tranAs.emplace_back(p - mp);
+        }
+        libnest2d::TMultiShape<Clipper3r::Polygon> transBpolys;
+        transBpolys.reserve(tranAs.size());
+        const size_t onums = orbit.size();
+        for (const auto& tr : tranAs) {
+            Clipper3r::Path path;
+            path.reserve(onums);
+            for (const auto& p : orbit) {
+                path.emplace_back(convertIntPoint(p + tr));
+            }
+            Clipper3r::Polygon poly(path);
+            transBpolys.emplace_back(poly);
+        }
+        
+#ifdef _WIN32
+#ifdef _DEBUG
+        if (false) {
+            libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
+            itemWriter.saveShapes(transApolys, "D://test/trackPolys", 3);
+            itemWriter.saveShapes(transBpolys, "D://test/statePolys", 5);
+        }
+#endif // _DEBUG
+#endif // _WIN32
+        
         // merge polys
+        libnest2d::TMultiShape<Clipper3r::Polygon> polys;
+        polys.insert(polys.end(), transApolys.begin(), transApolys.end());
+        polys.insert(polys.end(), transBpolys.begin(), transBpolys.end());
         libnest2d::TMultiShape<Clipper3r::Polygon> mpolys = libnest2d::nfp::merge(polys);
+#ifdef _WIN32
+        #ifdef _DEBUG
+        if (false) {
+            libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
+            Clipper3r::Polygon polyA;
+            polyA.Contour.reserve(snums);
+            for (const auto& p : station) {
+                polyA.Contour.emplace_back(convertIntPoint(p));
+            }
+            itemWriter.saveShapes(polyA, transApolys, transBpolys, mpolys, "D://test/mergePolys");
+        }
+        #endif // _DEBUG
+#endif // _WIN32
+
         if (mpolys.empty()) return result;
         Clipper3r::Path contour = mpolys.front().Contour;
         double maxArea = Clipper3r::Area(contour);
@@ -83,6 +132,9 @@ namespace nestplacer {
     {
         bool inside = false;
         const size_t len = input.size();
+        for (const auto& v : input) {
+            if (pt == v) return false;
+        }
         for (size_t i = 0, j = len - 1; i < len; j = i++) {
             const auto& a = input[i];
             const auto& b = input[j];
@@ -106,6 +158,110 @@ namespace nestplacer {
             return false;
         }
         return true;
+    }
+    
+    double getPointPolygonDist(const Vertex& point, const Clipper3r::Polygon& poly) {
+        
+        auto dotProduct = [&](const Vertex & a, const Vertex & b) {
+            return double(a.X * b.X + a.Y * b.Y);
+        };
+
+        auto magnitude2 = [&](const Vertex & a) {
+            return double(a.X * a.X + a.Y * a.Y);
+        };
+
+        auto getSegmentDistance = [&](const Vertex & p, const Vertex & a, const Vertex & b) {
+            Vertex ab = b - a, ap = p - a;
+            double k = dotProduct(ap, ab) / magnitude2(ab);
+            Vertex nearPt;
+            if (k < 0) {
+                nearPt.X = a.X;
+                nearPt.Y = a.Y;
+            } else if (k > 1) {
+                nearPt.X = b.X;
+                nearPt.Y = b.Y;
+            } else {
+                nearPt.X = a.X * (1 - k) + b.X * k;
+                nearPt.Y = a.Y * (1 - k) + b.Y * k;
+            }
+            return std::sqrt(magnitude2(p - nearPt));
+        };
+
+        auto calculateDist = [&](const Vertex & p, const Clipper3r::Path & input) {
+            Clipper3r::Path path = input;
+            if (path.front() == path.back()) {
+                path.pop_back();
+            }
+            double d = std::numeric_limits<double>::max();
+            const size_t nums = path.size();
+            for (size_t i = 0; i < nums; ++i) {
+                const auto& a = path[i];
+                const auto& b = path[(i + 1 == nums) ? 0 : (i + 1)];
+                double dist = getSegmentDistance(p, a, b);
+                if (dist < d) {
+                    d = dist;
+                }
+            }
+            return d;
+        };
+        const auto& contour = poly.Contour;
+        double minDist = calculateDist(point, contour);
+
+        const auto& holes = poly.Holes;
+        for (const auto& hole : holes) {
+            double dist = calculateDist(point, hole);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+        }
+        return minDist;
+    }
+
+    bool pointOnPolygon(const Vertex& point, const Clipper3r::Polygon& poly)
+    {
+        auto magnitude = [&](const Vertex & a) {
+            return std::sqrt(double(a.X * a.X + a.Y * a.Y));
+        };
+
+        auto vecUnit = [&](const Vertex & a) {
+            double d = magnitude(a);
+            return Vertex(a.X / d, a.Y / d);
+        };
+
+        auto crossProduct = [&](const Vertex & a, const Vertex & b) {
+            return double(a.X * b.Y - a.Y * b.X);
+        };
+
+        auto pointOnSegment = [&](const Vertex & p, const Vertex & a, const Vertex & b) {
+            if (p == a || p == b) return true;
+            Vertex dir1 = vecUnit(p - a);
+            Vertex dir2 = vecUnit(b - a);
+            double area = std::fabs(crossProduct(dir1, dir2));
+            return area < 1E-8;
+        };
+
+        auto pointOnPath = [&](const Vertex & p, const Clipper3r::Path & input) {
+            Clipper3r::Path path = input;
+            if (path.front() == path.back()) {
+                path.pop_back();
+            }
+            const size_t nums = path.size();
+            for (size_t i = 0; i < nums; ++i) {
+                const auto& a = path[i];
+                const auto& b = path[(i + 1 == nums) ? 0 : (i + 1)];
+                if (pointOnSegment(p, a, b)) return true;
+            }
+            return false;
+        };
+
+        const auto& contour = poly.Contour;
+        if (pointOnPath(point, contour)) return true;
+
+        const auto& holes = poly.Holes;
+        for (const auto& hole : holes) {
+            if (pointOnPath(point, hole)) return true;
+        }
+        return false;
     }
 
     PR_RESULT checkTwoPolygon(const libnest2d::Item& rsh, const libnest2d::Item& other, bool orbconvex = true, bool calDist = false)
@@ -131,7 +287,7 @@ namespace nestplacer {
 
 #ifdef _WIN32
         //#if _DEBUG
-        if (false) {
+        if (true) {
             libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
             libnest2d::writer::ItemWriter<Clipper3r::Polygon>::SVGData datas;
             datas.items.emplace_back(std::ref(const_cast<libnest2d::Item&>(rsh)));
@@ -147,13 +303,12 @@ namespace nestplacer {
         const Clipper3r::Path contour = poly.Contour;
         if (pointInPolygon(rv, contour)) {
             res.state = ContactState::INTERSECT;
-            if (calDist) res.dist = -1.0;
-        } else if (Clipper3r::PointInPolygon(rv, contour)) {
+            if (calDist) res.dist = -getPointPolygonDist(rv, subnfp.first);
+        } else if (pointOnPolygon(rv, poly)) {
             res.state = ContactState::TANGENT;
-            if (calDist) res.dist = 0;
+            if (calDist) res.dist = getPointPolygonDist(rv, subnfp.first);
         } else {
-            const auto& ab = rv - subnfp.second;
-            if (calDist) res.dist = std::sqrt(ab.X * ab.X + ab.Y * ab.Y);
+            if (calDist) res.dist = getPointPolygonDist(rv, subnfp.first);
             res.state = ContactState::SEPARATE;
         }
         return res;
