@@ -286,8 +286,8 @@ namespace nestplacer {
         const libnest2d::TPoint<Clipper3r::Polygon>& rv = other.referenceVertex();
 
 #ifdef _WIN32
-        //#if _DEBUG
-        if (true) {
+        #if _DEBUG
+        if (false) {
             libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
             libnest2d::writer::ItemWriter<Clipper3r::Polygon>::SVGData datas;
             datas.items.emplace_back(std::ref(const_cast<libnest2d::Item&>(rsh)));
@@ -296,7 +296,7 @@ namespace nestplacer {
             datas.p = other.referenceVertex();
             itemWriter.saveItems(datas, "D://test/nfps");
         }
-        //#endif
+        #endif
 #endif // _WIN32
 
         const Clipper3r::Polygon& poly = subnfp.first;
