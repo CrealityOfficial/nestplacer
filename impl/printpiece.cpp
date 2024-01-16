@@ -162,12 +162,12 @@ namespace nestplacer {
     
     double getPointPolygonDist(const Vertex& point, const Clipper3r::Polygon& poly) {
         
-        auto dotProduct = [&](const Vertex & a, const Vertex & b) {
-            return double(a.X * b.X + a.Y * b.Y);
+        auto dotProduct = [&](const Vertex & v1, const Vertex & v2) {
+            return double(v1.X * v2.X + v1.Y * v2.Y);
         };
 
-        auto magnitude2 = [&](const Vertex & a) {
-            return double(a.X * a.X + a.Y * a.Y);
+        auto magnitude2 = [&](const Vertex & vec) {
+            return double(vec.X * vec.X + vec.Y * vec.Y);
         };
 
         auto getSegmentDistance = [&](const Vertex & p, const Vertex & a, const Vertex & b) {
@@ -219,25 +219,31 @@ namespace nestplacer {
 
     bool pointOnPolygon(const Vertex& point, const Clipper3r::Polygon& poly)
     {
-        auto magnitude = [&](const Vertex & a) {
-            return std::sqrt(double(a.X * a.X + a.Y * a.Y));
+        auto magnitude2 = [&](const Vertex & vec) {
+            return double(vec.X * vec.X + vec.Y * vec.Y);
         };
 
-        auto vecUnit = [&](const Vertex & a) {
-            double d = magnitude(a);
-            return Vertex(a.X / d, a.Y / d);
+        auto vecUnit = [&](const Vertex & vec) {
+            double d = std::sqrt(magnitude2(vec));
+            return trimesh::dvec2((double)vec.X / d, (double)vec.Y / d);
         };
 
-        auto crossProduct = [&](const Vertex & a, const Vertex & b) {
-            return double(a.X * b.Y - a.Y * b.X);
+        auto dotProduct = [&](const Vertex & v1, const Vertex & v2) {
+            return double(v1.X * v2.X + v1.Y * v2.Y);
+        };
+
+        auto crossProduct = [&](const trimesh::dvec2 & v1, const trimesh::dvec2 & v2) {
+            return v1.x * v2.y - v1.y * v2.x;
         };
 
         auto pointOnSegment = [&](const Vertex & p, const Vertex & a, const Vertex & b) {
             if (p == a || p == b) return true;
-            Vertex dir1 = vecUnit(p - a);
-            Vertex dir2 = vecUnit(b - a);
+            Vertex ab = b - a, ap = p - a;
+            trimesh::dvec2 dir1 = vecUnit(ap);
+            trimesh::dvec2 dir2 = vecUnit(ab);
+            double k = dotProduct(ap, ab) / dotProduct(ab, ab);
             double area = std::fabs(crossProduct(dir1, dir2));
-            return area < 1E-8;
+            return (k > 0 && k < 1) && (area < 1E-8);
         };
 
         auto pointOnPath = [&](const Vertex & p, const Clipper3r::Path & input) {
@@ -303,12 +309,12 @@ namespace nestplacer {
         const Clipper3r::Path contour = poly.Contour;
         if (pointInPolygon(rv, contour)) {
             res.state = ContactState::INTERSECT;
-            if (calDist) res.dist = -getPointPolygonDist(rv, subnfp.first);
+            if (calDist) res.dist = -getPointPolygonDist(rv, poly);
         } else if (pointOnPolygon(rv, poly)) {
             res.state = ContactState::TANGENT;
-            if (calDist) res.dist = getPointPolygonDist(rv, subnfp.first);
+            if (calDist) res.dist = getPointPolygonDist(rv, poly);
         } else {
-            if (calDist) res.dist = getPointPolygonDist(rv, subnfp.first);
+            if (calDist) res.dist = getPointPolygonDist(rv, poly);
             res.state = ContactState::SEPARATE;
         }
         return res;

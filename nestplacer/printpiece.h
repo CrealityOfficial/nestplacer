@@ -22,8 +22,8 @@ namespace nestplacer {
     struct PR_RESULT {
         int first;
         int second;
-        double dist;
         ContactState state;
+        double dist;
     };
 
     NESTPLACER_API void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calDist = false);
