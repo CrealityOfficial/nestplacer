@@ -9,7 +9,8 @@
 namespace nestplacer {
 
     typedef std::vector<trimesh::vec3> PR_Polygon;
-
+    
+    NESTPLACER_API void loadFromPrintFile(const std::string& fileName, std::vector<PR_Polygon>& polys, trimesh::vec3& mp, bool calDist);
     NESTPLACER_API PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp, std::string* fileName = nullptr);
 
     enum class ContactState :int {

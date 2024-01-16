@@ -64,6 +64,18 @@ namespace nestplacer {
         }
     };
 
+    void loadFromPrintFile(const std::string& fileName, std::vector<PR_Polygon>& polys, trimesh::vec3& mp, bool calDist)
+    {
+        PRInput input;
+        if (!ccglobal::cxndLoad(input, fileName, nullptr)) {
+            LOGE("printFromFile load error [%s]", fileName.c_str());
+            return;
+        }
+        polys = input.polys;
+        mp = input.point;
+        calDist = input.calDist;
+    }
+
     PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp, std::string* fileName)
     {
         if (fileName) {
