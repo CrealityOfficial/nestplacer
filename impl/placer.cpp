@@ -52,7 +52,8 @@ namespace nestplacer
             msbase::saveGeometrys(out, ageometrys);
             ccglobal::cxndSaveT(out, param.box.min);
             ccglobal::cxndSaveT(out, param.box.max);
-            
+            ccglobal::cxndSaveT(out, param.box.valid);
+
             ccglobal::cxndSaveT(out, param.concaveCal);
             ccglobal::cxndSaveT(out, param.itemGap);
             ccglobal::cxndSaveT(out, param.binItemGap);
@@ -88,6 +89,7 @@ namespace nestplacer
                 }
                 ccglobal::cxndLoadT(in, param.box.min);
                 ccglobal::cxndLoadT(in, param.box.max);
+                ccglobal::cxndLoadT(in, param.box.valid);
 
                 ccglobal::cxndLoadT(in, param.concaveCal);
                 ccglobal::cxndLoadT(in, param.itemGap);
