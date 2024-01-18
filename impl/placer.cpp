@@ -534,15 +534,15 @@ namespace nestplacer
         config.placer_config.setStartPoint(parameter.startPoint);
         config.placer_config.setNewStartPoint(parameter.startPoint);
         config.placer_config.binItemGap = edgeGap;
-        
+        config.placer_config.needNewBin = true;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.alignMode);
+            config.placer_config.setNewAlignment(parameter.alignMode);
         } else {
             config.placer_config.alignment= libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+            config.placer_config.new_alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
 
-        config.placer_config.needNewBin = true;
-        config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
             int angle = parameter.rotateAngle;
             config.placer_config.rotations.clear();
@@ -682,8 +682,10 @@ namespace nestplacer
         config.placer_config.calConcave = concaveCal;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.alignMode);
+            config.placer_config.setNewAlignment(parameter.alignMode);
         } else {
             config.placer_config.alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
+            config.placer_config.new_alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
 
         auto box_func = [&binBox](const int& index) {
@@ -693,7 +695,6 @@ namespace nestplacer
         };
         config.placer_config.box_function = box_func;
 
-        config.placer_config.setNewAlignment(1);
         if (parameter.rotate) {
             int angle = parameter.rotateAngle;
             config.placer_config.rotations.clear();
@@ -784,5 +785,5 @@ namespace nestplacer
         b.min += (float)index * dir * (1.0 + m_ratio);
         b.max += (float)index * dir * (1.0 + m_ratio);
         return b;
-    }
+    }    
 }
