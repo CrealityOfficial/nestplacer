@@ -96,16 +96,27 @@ namespace nestplacer
 		float m_dy;
 	};
 
-    class NESTPLACER_API FreeBinExtendStrategy : public BinExtendStrategy {
+    class NESTPLACER_API DiagonalBinExtendStrategy : public BinExtendStrategy {
     public:
-        FreeBinExtendStrategy(const trimesh::box3& box, float ratio);
-        virtual ~FreeBinExtendStrategy();
+		DiagonalBinExtendStrategy(const trimesh::box3& box, float ratio);
+        virtual ~DiagonalBinExtendStrategy();
 
         trimesh::box3 bounding(int index) const override;
     protected:
         trimesh::box3 m_box;
         float m_ratio;
     };
+
+	class NESTPLACER_API MultiBinExtendStrategy : public BinExtendStrategy {
+	public:
+		MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int operateBin = 0);
+		virtual ~MultiBinExtendStrategy();
+
+		trimesh::box3 bounding(int index) const override;
+	protected:
+		std::vector<trimesh::box3> m_boxes;
+		int m_curBin = 0;
+	};
 }
 
 #endif // NESTPLACER_PLACER_1702004306712_H

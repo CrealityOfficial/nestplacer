@@ -766,19 +766,18 @@ namespace nestplacer
 		return b;
 	}
 
- 
-    FreeBinExtendStrategy::FreeBinExtendStrategy(const trimesh::box3& box, float rate)
+    DiagonalBinExtendStrategy::DiagonalBinExtendStrategy(const trimesh::box3& box, float rate)
         : BinExtendStrategy()
         , m_box(box)
         , m_ratio(rate)
     {
     }
 
-    FreeBinExtendStrategy::~FreeBinExtendStrategy()
+    DiagonalBinExtendStrategy::~DiagonalBinExtendStrategy()
     {
     }
 
-    trimesh::box3 FreeBinExtendStrategy::bounding(int index) const
+    trimesh::box3 DiagonalBinExtendStrategy::bounding(int index) const
     {
         trimesh::box3 b = m_box;
         trimesh::vec3 dir = b.size();
@@ -786,4 +785,38 @@ namespace nestplacer
         b.max += (float)index * dir * (1.0 + m_ratio);
         return b;
     }    
+    
+    MultiBinExtendStrategy::MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int operateBin)
+        : BinExtendStrategy()
+        ,m_boxes(boxes)
+        ,m_curBin(operateBin)
+    {
+    }
+    
+    MultiBinExtendStrategy::~MultiBinExtendStrategy()
+    {
+    }
+    
+    trimesh::box3 MultiBinExtendStrategy::bounding(int index) const
+    {
+        std::vector<trimesh::box3> results;
+        results.reserve(m_boxes.size());
+        if (m_curBin >= 0 && m_curBin < m_boxes.size()) {
+            std::vector<int> numbers;
+            numbers.reserve(m_boxes.size());
+            for (int i = 0; i < m_boxes.size(); ++i) {
+                numbers.emplace_back(i);
+            }
+            auto iter = std::find(numbers.begin(), numbers.end(), m_curBin);
+            if (iter != numbers.end()) {
+                std::rotate(numbers.begin(), iter, iter + 1);
+            }
+            for (int i = 0; i < m_boxes.size(); ++i) {
+                results.emplace_back(m_boxes[numbers[i]]);
+            }
+            return results[index];
+        } else {
+            return m_boxes[index];
+        }
+    }
 }
