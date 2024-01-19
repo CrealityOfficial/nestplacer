@@ -33,13 +33,17 @@ namespace nestplacer
         {
             msbase::CXNDGeometrys fgeometrys;
             fgeometrys.reserve(fixed.size());
+            std::vector<int> fixIndexs;
+            fixIndexs.reserve(fixed.size());
             for (auto& fitem : fixed) {
                 msbase::CXNDGeometry geo;
                 geo.contour.swap(fitem.outline);
                 geo.holes.swap(fitem.holes);
                 fgeometrys.emplace_back(geo);
+                fixIndexs.emplace_back(fitem.binIndex);
             }
             msbase::saveGeometrys(out, fgeometrys);
+            ccglobal::cxndSaveVectorT(out, fixIndexs);
 
             msbase::CXNDGeometrys ageometrys;
             ageometrys.reserve(actives.size());
@@ -64,20 +68,23 @@ namespace nestplacer
             ccglobal::cxndSaveT(out, param.startPoint);
             return true;
         }
-
         bool load(std::fstream& in, int ver, ccglobal::Tracer* tracer) override
         {
             if (ver == 0) {
                 msbase::CXNDGeometrys fgeometrys;
                 msbase::loadGeometrys(in, fgeometrys);
                 fixed.reserve(fgeometrys.size());
-                for (auto& geometry : fgeometrys) {
+                std::vector<int> fixIndexs;
+                ccglobal::cxndLoadVectorT(in, fixIndexs);
+                for (int i = 0; i < fgeometrys.size(); ++i) {
+                    auto geometry = fgeometrys[i];
                     PlacerItemGeometry pitem;
                     pitem.outline.swap(geometry.contour);
                     pitem.holes.swap(geometry.holes);
+                    pitem.binIndex = fixIndexs[i];
                     fixed.emplace_back(pitem);
                 }
-
+                
                 msbase::CXNDGeometrys ageometrys;
                 msbase::loadGeometrys(in, ageometrys);
                 actives.reserve(ageometrys.size());
@@ -360,7 +367,7 @@ namespace nestplacer
         PItem(const PlacerItemGeometry& geometry);
         virtual ~PItem();
         void polygon(nestplacer::PlacerItemGeometry& geometry) override;
-
+        int binIndex = -1;
         std::vector<trimesh::vec3> contour;
         std::vector<std::vector<trimesh::vec3>> holes;
     };
@@ -369,6 +376,7 @@ namespace nestplacer
     {
         contour = geometry.outline;
         holes = geometry.holes;
+        binIndex = geometry.binIndex;
     }
 
     PItem::~PItem()
@@ -380,6 +388,7 @@ namespace nestplacer
     {
         geometry.outline = contour;
         geometry.holes = holes;
+        geometry.binIndex = binIndex;
     }
 
     void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter)
@@ -501,7 +510,7 @@ namespace nestplacer
                     results.emplace_back();
                     continue;
                 }
-                item.markAsFixedInBin(0);
+                item.markAsFixedInBin(geometry.binIndex);
                 item.convexCal(false);
                 inputs.emplace_back(item);
             } else {
@@ -510,7 +519,7 @@ namespace nestplacer
                     results.emplace_back();
                     continue;
                 }
-                item.markAsFixedInBin(0);
+                item.markAsFixedInBin(geometry.binIndex);
                 inputs.emplace_back(item);
             }
         }
@@ -636,7 +645,7 @@ namespace nestplacer
                     results.emplace_back();
                     continue;
                 }
-                item.markAsFixedInBin(0);
+                item.markAsFixedInBin(geometry.binIndex);
                 item.convexCal(false);
                 inputs.emplace_back(item);
             } else {
@@ -645,7 +654,7 @@ namespace nestplacer
                     results.emplace_back();
                     continue;
                 }
-                item.markAsFixedInBin(0);
+                item.markAsFixedInBin(geometry.binIndex);
                 inputs.emplace_back(item);
             }
         }

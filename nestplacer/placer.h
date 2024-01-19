@@ -12,11 +12,12 @@ namespace nestplacer
 	struct  PlacerResultRT 
 	{
 		trimesh::vec3 rt; // x, y translation  z rotation angle
-		int binIndex = 0;
+		int binIndex = -1;
 	};
 
 	struct PlacerItemGeometry
 	{
+		int binIndex = -1;
 		std::vector<trimesh::vec3> outline;
 		std::vector<std::vector<trimesh::vec3>> holes;
 	};
