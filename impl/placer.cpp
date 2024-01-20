@@ -482,8 +482,6 @@ namespace nestplacer
             ccglobal::cxndSave(input, parameter.fileName, parameter.tracer);
         }
 
-		std::vector<libnest2d::Item> inputs;
-        inputs.reserve(fixed.size() + actives.size());
         auto box_func = [&binExtendStrategy](const int& index) {
             trimesh::box3 binBox = binExtendStrategy.bounding(index);
             libnest2d::Box box = convertBox(binBox);
@@ -498,47 +496,6 @@ namespace nestplacer
         libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
         const double threshold = 0.5 * itemGap;
 
-        for (PlacerItem* pitem : fixed) {
-            nestplacer::PlacerItemGeometry geometry;
-            pitem->polygon(geometry);
-            Clipper3r::Polygon sh, poly;
-            convertPolygon(geometry, sh);
-            if (concaveCal) {
-                poly = concaveSimplyfy(sh, threshold);
-                libnest2d::Item item(poly);
-                if (!IntersectToBox(item, bbin)) {
-                    results.emplace_back();
-                    continue;
-                }
-                item.markAsFixedInBin(geometry.binIndex);
-                item.convexCal(false);
-                inputs.emplace_back(item);
-            } else {
-                libnest2d::Item item(sh);
-                if (!IntersectToBox(item, bbin)) {
-                    results.emplace_back();
-                    continue;
-                }
-                item.markAsFixedInBin(geometry.binIndex);
-                inputs.emplace_back(item);
-            }
-        }
-		for (PlacerItem* pitem : actives){
-			nestplacer::PlacerItemGeometry geometry;
-			pitem->polygon(geometry);
-            Clipper3r::Polygon sh, poly;
-            convertPolygon(geometry, sh);
-            if (concaveCal) {
-                poly = concaveSimplyfy(sh, threshold);
-                libnest2d::Item item(poly);
-                item.convexCal(false);
-                inputs.emplace_back(item);
-            } else {
-                libnest2d::Item item(sh);
-                inputs.emplace_back(item);
-            }
-		}
-        
         libnest2d::NestControl ctl;
         config.placer_config.setStartPoint(parameter.startPoint);
         config.placer_config.setNewStartPoint(parameter.startPoint);
@@ -570,6 +527,50 @@ namespace nestplacer
             config.placer_config.rotations.emplace_back(0);
         }
         
+        std::vector<libnest2d::Item> inputs;
+        inputs.reserve(fixed.size() + actives.size());
+        for (PlacerItem* pitem : fixed) {
+            nestplacer::PlacerItemGeometry geometry;
+            pitem->polygon(geometry);
+            Clipper3r::Polygon sh, poly;
+            convertPolygon(geometry, sh);
+            int binid = geometry.binIndex;
+            const auto& bbox = box_func(binid);
+            if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                libnest2d::Item item(poly);
+                item.markAsFixedInBin(binid);
+                if (!IntersectToBox(item, bbox)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.convexCal(false);
+                inputs.emplace_back(item);
+            } else {
+                libnest2d::Item item(sh);
+                item.markAsFixedInBin(binid);
+                if (!IntersectToBox(item, bbox)) {
+                    results.emplace_back();
+                    continue;
+                }
+                inputs.emplace_back(item);
+            }
+        }
+        for (PlacerItem* pitem : actives) {
+            nestplacer::PlacerItemGeometry geometry;
+            pitem->polygon(geometry);
+            Clipper3r::Polygon sh, poly;
+            convertPolygon(geometry, sh);
+            if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                libnest2d::Item item(poly);
+                item.convexCal(false);
+                inputs.emplace_back(item);
+            } else {
+                libnest2d::Item item(sh);
+                inputs.emplace_back(item);
+            }
+        }
         const size_t size = inputs.size();
         ctl.progressfn = [&size, &parameter](int remain) {
             if (parameter.tracer) {
@@ -627,61 +628,11 @@ namespace nestplacer
 
         std::vector<libnest2d::Item> inputs;
         trimesh::box3 binBox = parameter.box;
-        libnest2d::Box bbox = convertBox(binBox);
+        libnest2d::Box bbin = convertBox(binBox);
         libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
         libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
         const double threshold = 0.5 * itemGap;
-        inputs.reserve(fixed.size());
         bool concaveCal = parameter.concaveCal;
-        for (PlacerItem* pitem : fixed) {
-            nestplacer::PlacerItemGeometry geometry;
-            pitem->polygon(geometry);
-            Clipper3r::Polygon sh, poly;
-            convertPolygon(geometry, sh);
-            if (concaveCal) {
-                poly = concaveSimplyfy(sh, threshold);
-                libnest2d::Item item(poly);
-                if (!IntersectToBox(item, bbox)) {
-                    results.emplace_back();
-                    continue;
-                }
-                item.markAsFixedInBin(geometry.binIndex);
-                item.convexCal(false);
-                inputs.emplace_back(item);
-            } else {
-                libnest2d::Item item(sh);
-                if (!IntersectToBox(item, bbox)) {
-                    results.emplace_back();
-                    continue;
-                }
-                item.markAsFixedInBin(geometry.binIndex);
-                inputs.emplace_back(item);
-            }
-        }
-        {
-            if (!active) return;
-            libnest2d::Coord binArea = bbox.area();
-            nestplacer::PlacerItemGeometry geometry;
-            active->polygon(geometry);
-            Clipper3r::Polygon sh, poly;
-            convertPolygon(geometry, sh);
-            if (concaveCal) {
-                poly = concaveSimplyfy(sh, threshold);
-                poly.Contour.swap(sh.Contour);
-                poly.Holes.swap(sh.Holes);
-            }
-            libnest2d::Item item(sh);
-            if (concaveCal) {
-                item.convexCal(false);
-            }
-            const auto& contour = item.rawShape().Contour;
-            libnest2d::Coord itemArea = Clipper3r::Area(contour);
-            int nums = std::floor(binArea / std::fabs(itemArea));
-            inputs.reserve(fixed.size() + nums);
-            for (int i = 0; i < nums; ++i) {
-                inputs.emplace_back(item);
-            }
-        }
         
         libnest2d::NestControl ctl;
         libnest2d::NestConfig<libnest2d::NfpPlacer, libnest2d::FirstFitSelection> config;
@@ -722,6 +673,58 @@ namespace nestplacer
             config.placer_config.rotations.emplace_back(0);
         }
 
+        inputs.reserve(fixed.size());
+        for (PlacerItem* pitem : fixed) {
+            nestplacer::PlacerItemGeometry geometry;
+            pitem->polygon(geometry);
+            Clipper3r::Polygon sh, poly;
+            convertPolygon(geometry, sh);
+            int binid = geometry.binIndex;
+            const auto& bbox = box_func(binid);
+            if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                libnest2d::Item item(poly);
+                if (!IntersectToBox(item, bbox)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.markAsFixedInBin(binid);
+                item.convexCal(false);
+                inputs.emplace_back(item);
+            } else {
+                libnest2d::Item item(sh);
+                if (!IntersectToBox(item, bbox)) {
+                    results.emplace_back();
+                    continue;
+                }
+                item.markAsFixedInBin(binid);
+                inputs.emplace_back(item);
+            }
+        }
+        {
+            if (!active) return;
+            libnest2d::Coord binArea = bbin.area();
+            nestplacer::PlacerItemGeometry geometry;
+            active->polygon(geometry);
+            Clipper3r::Polygon sh, poly;
+            convertPolygon(geometry, sh);
+            if (concaveCal) {
+                poly = concaveSimplyfy(sh, threshold);
+                poly.Contour.swap(sh.Contour);
+                poly.Holes.swap(sh.Holes);
+            }
+            libnest2d::Item item(sh);
+            if (concaveCal) {
+                item.convexCal(false);
+            }
+            const auto& contour = item.rawShape().Contour;
+            libnest2d::Coord itemArea = Clipper3r::Area(contour);
+            int nums = std::floor(binArea / std::fabs(itemArea));
+            inputs.reserve(fixed.size() + nums);
+            for (int i = 0; i < nums; ++i) {
+                inputs.emplace_back(item);
+            }
+        }
         const size_t size = inputs.size();
         ctl.progressfn = [&size, &parameter](int remain) {
             if (parameter.tracer) {
@@ -734,7 +737,7 @@ namespace nestplacer
             return false;
         };
 
-        size_t bins = nest(inputs, bbox, itemGap, config, ctl);
+        size_t bins = nest(inputs, bbin, itemGap, config, ctl);
 
         //return transformed items.
         std::vector<PlacerResultRT> activeRts;
@@ -795,11 +798,27 @@ namespace nestplacer
         return b;
     }    
     
-    MultiBinExtendStrategy::MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int operateBin)
+    MultiBinExtendStrategy::MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int priorBin)
         : BinExtendStrategy()
-        ,m_boxes(boxes)
-        ,m_curBin(operateBin)
     {
+        m_boxes.reserve(boxes.size());
+        if (priorBin >= 0 && priorBin < boxes.size()) {
+            std::vector<int> numbers;
+            numbers.reserve(boxes.size());
+            for (int i = 0; i < boxes.size(); ++i) {
+                numbers.emplace_back(i);
+            }
+            auto iter = std::find(numbers.begin(), numbers.end(), priorBin);
+            if (iter != numbers.end()) {
+                std::rotate(numbers.begin(), iter, iter + 1);
+            }
+            for (int i = 0; i < boxes.size(); ++i) {
+                m_boxes.emplace_back(boxes[numbers[i]]);
+            }
+        } else {
+            assert("传入优先盘索引不对");
+            m_boxes = boxes;
+        }
     }
     
     MultiBinExtendStrategy::~MultiBinExtendStrategy()
@@ -808,24 +827,11 @@ namespace nestplacer
     
     trimesh::box3 MultiBinExtendStrategy::bounding(int index) const
     {
-        std::vector<trimesh::box3> results;
-        results.reserve(m_boxes.size());
-        if (m_curBin >= 0 && m_curBin < m_boxes.size()) {
-            std::vector<int> numbers;
-            numbers.reserve(m_boxes.size());
-            for (int i = 0; i < m_boxes.size(); ++i) {
-                numbers.emplace_back(i);
-            }
-            auto iter = std::find(numbers.begin(), numbers.end(), m_curBin);
-            if (iter != numbers.end()) {
-                std::rotate(numbers.begin(), iter, iter + 1);
-            }
-            for (int i = 0; i < m_boxes.size(); ++i) {
-                results.emplace_back(m_boxes[numbers[i]]);
-            }
-            return results[index];
-        } else {
+        if (index >= 0 && index < m_boxes.size()) {
             return m_boxes[index];
+        } else {
+            assert("当前索引包围盒越界");
+            return trimesh::box3();
         }
     }
 }

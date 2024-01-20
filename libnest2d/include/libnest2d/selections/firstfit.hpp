@@ -75,13 +75,15 @@ public:
             }
         };
         if (!packed_bins_.empty()) shrinkBin(bin);
-
-        for(ItemGroup& ig : packed_bins_) {
-            placers.emplace_back(bin);
+        for (int i = 0; i < packed_bins_.size(); ++i) {
+            const TBin& bbin = pconfig.box_function[i];
+            const ItemGroup& ig = packed_bins_[i];
+            shrinkBin(bbin);
+            placers.emplace_back(bbin);
             placers.back().configure(pconfig);
             placers.back().preload(ig);
         }
-        
+
         auto sortfunc = [](Item& i1, Item& i2) {
             int p1 = i1.priority(), p2 = i2.priority();
             bool needSwap = false;

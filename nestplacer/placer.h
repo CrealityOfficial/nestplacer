@@ -59,9 +59,9 @@ namespace nestplacer
 
 		virtual trimesh::box3 bounding(int index) const = 0;
 	};
-    NESTPLACER_API void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter);
-    NESTPLACER_API void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
-    NESTPLACER_API void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
+	NESTPLACER_API void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter);
+	NESTPLACER_API void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
+	NESTPLACER_API void extendFillFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
 	/// <summary>
 	/// 
 	/// </summary>
@@ -110,13 +110,12 @@ namespace nestplacer
 
 	class NESTPLACER_API MultiBinExtendStrategy : public BinExtendStrategy {
 	public:
-		MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int operateBin = 0);
+		MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int priorBin = 0);
 		virtual ~MultiBinExtendStrategy();
 
 		trimesh::box3 bounding(int index) const override;
 	protected:
 		std::vector<trimesh::box3> m_boxes;
-		int m_curBin = 0;
 	};
 }
 
