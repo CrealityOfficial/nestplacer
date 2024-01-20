@@ -75,14 +75,31 @@ namespace nestplacer {
         mp = input.point;
         calDist = input.calDist;
     }
-
-    PR_Polygon sweepAreaProfile(const PR_Polygon& station, const PR_Polygon& orbit, const trimesh::vec3& mp, std::string* fileName)
+    
+    void Oritentation(const PR_Polygon& poly, PR_Polygon& result)
+    {
+        float area = 0.0f;
+        size_t len = poly.size();
+        result.reserve(len);
+        for (size_t i = 0, j = len - 1; i < len; j = i++) {
+            const auto& a = poly[i];
+            const auto& b = poly[j];
+            area += 0.5 * (a.x * b.y - a.y * b.x);
+            result.emplace_back(a);
+        }
+        //确保输出轮廓为顺时针方向
+        if (area < 0) {
+            std::reverse(result.begin(), result.end());
+        }
+    }
+    
+    PR_Polygon sweepAreaProfile(const PR_Polygon& subject, const PR_Polygon& object, const trimesh::vec3& mp, std::string* fileName)
     {
         if (fileName) {
             PRInput input;
             std::vector<PR_Polygon> polys;
-            polys.emplace_back(station);
-            polys.emplace_back(orbit);
+            polys.emplace_back(subject);
+            polys.emplace_back(object);
             input.polys = polys;
             input.point = mp;
             input.calDist = false;
@@ -90,6 +107,9 @@ namespace nestplacer {
         }
         PR_Polygon result;
         //计算
+        PR_Polygon station, orbit;
+        Oritentation(subject, station);
+        Oritentation(object, orbit);
         std::vector<trimesh::vec3> tranBs;
         tranBs.reserve(orbit.size());
         for (const auto& p : orbit) {
@@ -138,8 +158,10 @@ namespace nestplacer {
         
         // merge polys
         libnest2d::TMultiShape<Clipper3r::Polygon> polys;
-        polys.insert(polys.end(), transApolys.begin(), transApolys.end());
-        polys.insert(polys.end(), transBpolys.begin(), transBpolys.end());
+        libnest2d::TMultiShape<Clipper3r::Polygon> polysA = libnest2d::nfp::merge(transApolys);
+        libnest2d::TMultiShape<Clipper3r::Polygon> polysB = libnest2d::nfp::merge(transBpolys);
+        polys.insert(polys.end(), polysA.begin(), polysA.end());
+        polys.insert(polys.end(), polysB.begin(), polysB.end());
         libnest2d::TMultiShape<Clipper3r::Polygon> mpolys = libnest2d::nfp::merge(polys);
 #ifdef _WIN32
         #ifdef _DEBUG
@@ -150,17 +172,17 @@ namespace nestplacer {
             for (const auto& p : station) {
                 polyA.Contour.emplace_back(convertIntPoint(p));
             }
-            itemWriter.saveShapes(polyA, transApolys, transBpolys, mpolys, "D://test/mergePolys");
+            itemWriter.saveShapes(polyA, polysA, polysB, mpolys, "D://test/mergePolys");
         }
         #endif // _DEBUG
 #endif // _WIN32
 
         if (mpolys.empty()) return result;
         Clipper3r::Path contour = mpolys.front().Contour;
-        double maxArea = Clipper3r::Area(contour);
+        double maxArea = std::fabs(Clipper3r::Area(contour));
         for (const auto& poly : mpolys) {
             const auto& path = poly.Contour;
-            const double area = Clipper3r::Area(path);
+            const double area = std::fabs(Clipper3r::Area(path));
             if (area > maxArea) {
                 maxArea = area;
                 contour = path;
