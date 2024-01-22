@@ -48,6 +48,11 @@ namespace nestplacer
         trimesh::box3 box;
 		ccglobal::Tracer* tracer = nullptr;
 
+		//paramter for mutiPlates.
+		std::vector<trimesh::box3> multiBins;
+		float binDist = 10.0f;
+		int curBinId = 0;
+
 		//debug
 		std::string fileName;
 	};
@@ -110,12 +115,14 @@ namespace nestplacer
 
 	class NESTPLACER_API MultiBinExtendStrategy : public BinExtendStrategy {
 	public:
-		MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int priorBin = 0);
+		MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, float binDist = 10.0f, int priorBin = 0);
 		virtual ~MultiBinExtendStrategy();
 
 		trimesh::box3 bounding(int index) const override;
 	protected:
 		std::vector<trimesh::box3> m_boxes;
+		float m_binDist = 10.0f;
+		int m_curBinId = 0;
 	};
 }
 

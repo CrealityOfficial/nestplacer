@@ -536,6 +536,8 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
+            if (binid == parameter.curBinId) binid = 0;
+            else binid = binid + 1;
             const auto& bbox = box_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
@@ -681,6 +683,8 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
+            if (binid == parameter.curBinId) binid = 0;
+            else binid = binid + 1;
             const auto& bbox = box_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
@@ -799,11 +803,13 @@ namespace nestplacer
         return b;
     }    
     
-    MultiBinExtendStrategy::MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, int priorBin)
+    MultiBinExtendStrategy::MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, float binDist, int priorBin)
         : BinExtendStrategy()
     {
+        m_binDist = binDist;
         m_boxes.reserve(boxes.size());
         if (priorBin >= 0 && priorBin < boxes.size()) {
+            m_curBinId = priorBin;
             std::vector<int> numbers;
             numbers.reserve(boxes.size());
             for (int i = 0; i < boxes.size(); ++i) {
@@ -817,7 +823,7 @@ namespace nestplacer
                 m_boxes.emplace_back(boxes[numbers[i]]);
             }
         } else {
-            LOGE("传入优先盘索引不对");
+            m_curBinId = priorBin;
             m_boxes = boxes;
         }
     }
@@ -830,9 +836,25 @@ namespace nestplacer
     {
         if (index >= 0 && index < m_boxes.size()) {
             return m_boxes[index];
+        } else if (index < 16) {
+            int nblocks = std::ceil(std::sqrt(index + 1));
+            int nrows = std::ceil((index + 1) / (double)nblocks);
+            int ncols = (index + 1) - (nrows - 1) * nblocks;
+            const trimesh::box3& box = m_boxes.front();
+            float w = box.size().x, h = box.size().y;
+            trimesh::box3 binBox = box;
+            binBox.min.x += (ncols - 1) * (w + m_binDist);
+            binBox.min.y -= (nrows - 1) * (h + m_binDist);
+            binBox.max.x += (ncols - 1) * (w + m_binDist);
+            binBox.max.y -= (nrows - 1) * (h + m_binDist);
+            return binBox;
         } else {
-            LOGE("当前包围盒索引越界");
-            return trimesh::box3();
+            const trimesh::box3& box = m_boxes.back();
+            float w = box.size().x, h = box.size().y;
+            trimesh::box3 binBox = box;
+            binBox.min.x += (w + m_binDist);
+            binBox.max.x += std::numeric_limits<float>::max();
+            return binBox;
         }
     }
 }

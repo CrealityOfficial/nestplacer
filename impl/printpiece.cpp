@@ -190,11 +190,13 @@ namespace nestplacer {
         }
         if (contour.front() == contour.back())
             contour.pop_back();
-        result.reserve(contour.size());
+        PR_Polygon prList;
+        prList.reserve(contour.size());
         for (const auto& p : contour) {
-            result.emplace_back(convertDoublePoint(p));
+            prList.emplace_back(convertDoublePoint(p));
         }
-
+        Oritentation(prList, result);
+        std::reverse(result.begin(), result.end());
         return result;
     }
 
