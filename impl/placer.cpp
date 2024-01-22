@@ -2,6 +2,7 @@
 #include "../libnest2d/tools/svgtools.hpp"
 #include "msbase/utils/trimeshserial.h"
 #include "nestplacer/placer.h"
+#include "ccglobal/log.h"
 #include "debug.h"
 
 
@@ -816,7 +817,7 @@ namespace nestplacer
                 m_boxes.emplace_back(boxes[numbers[i]]);
             }
         } else {
-            assert("传入优先盘索引不对");
+            LOGE("传入优先盘索引不对");
             m_boxes = boxes;
         }
     }
@@ -830,7 +831,7 @@ namespace nestplacer
         if (index >= 0 && index < m_boxes.size()) {
             return m_boxes[index];
         } else {
-            assert("当前索引包围盒越界");
+            LOGE("当前包围盒索引越界");
             return trimesh::box3();
         }
     }
