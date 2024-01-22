@@ -67,6 +67,19 @@ namespace nestplacer
             ccglobal::cxndSaveT(out, param.needAlign);
             ccglobal::cxndSaveT(out, param.alignMode);
             ccglobal::cxndSaveT(out, param.startPoint);
+            
+            ccglobal::cxndSaveT(out, param.curBinId);
+            ccglobal::cxndSaveT(out, param.binDist);
+            msbase::CXNDPolygons polys;
+            polys.reserve(param.multiBins.size());
+            for (const auto& box : param.multiBins) {
+                msbase::CXNDPolygon poly;
+                poly.reserve(2);
+                poly.emplace_back(box.min);
+                poly.emplace_back(box.max);
+                polys.emplace_back(poly);
+            }
+            msbase::savePolys(out, polys);
             return true;
         }
         bool load(std::fstream& in, int ver, ccglobal::Tracer* tracer) override
@@ -107,6 +120,20 @@ namespace nestplacer
                 ccglobal::cxndLoadT(in, param.needAlign);
                 ccglobal::cxndLoadT(in, param.alignMode);
                 ccglobal::cxndLoadT(in, param.startPoint);
+                
+                ccglobal::cxndLoadT(in, param.curBinId);
+                ccglobal::cxndLoadT(in, param.binDist);
+                msbase::CXNDPolygons polys;
+                msbase::loadPolys(in, polys);
+                param.multiBins.reserve(polys.size());
+                for (const auto& poly : polys) {
+                    trimesh::box3 box;
+                    if (poly.size() == 2) {
+                        box.min = poly[0];
+                        box.max = poly[1];
+                    }
+                    param.multiBins.emplace_back(box);
+                }
                 return true;
             }
             return false;
