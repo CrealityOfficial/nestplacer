@@ -563,8 +563,10 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
-            if (binid == parameter.curBinId) binid = 0;
-            else binid = binid + 1;
+            if (parameter.curBinId) {
+                if (binid == parameter.curBinId) binid = 0;
+                else binid = binid + 1;
+            }
             const auto& bbox = box_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
@@ -710,8 +712,10 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
-            if (binid == parameter.curBinId) binid = 0;
-            else binid = binid + 1;
+            if (parameter.curBinId) {
+                if (binid == parameter.curBinId) binid = 0;
+                else binid = binid + 1;
+            }
             const auto& bbox = box_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
@@ -835,6 +839,10 @@ namespace nestplacer
     {
         m_binDist = binDist;
         m_boxes.reserve(boxes.size());
+        if (!boxes.empty()) {
+            m_reffbox = boxes.front();
+            m_refbbox = boxes.back();
+        }
         if (priorBin >= 0 && priorBin < boxes.size()) {
             m_curBinId = priorBin;
             std::vector<int> numbers;
@@ -867,7 +875,7 @@ namespace nestplacer
             int nblocks = std::ceil(std::sqrt(index + 1));
             int nrows = std::ceil((index + 1) / (double)nblocks);
             int ncols = (index + 1) - (nrows - 1) * nblocks;
-            const trimesh::box3& box = m_boxes.front();
+            const trimesh::box3& box = m_reffbox;
             float w = box.size().x, h = box.size().y;
             trimesh::box3 binBox = box;
             binBox.min.x += (ncols - 1) * (w + m_binDist);
@@ -876,7 +884,7 @@ namespace nestplacer
             binBox.max.y -= (nrows - 1) * (h + m_binDist);
             return binBox;
         } else {
-            const trimesh::box3& box = m_boxes.back();
+            const trimesh::box3& box = m_refbbox;
             float w = box.size().x, h = box.size().y;
             trimesh::box3 binBox = box;
             binBox.min.x += (w + m_binDist);

@@ -123,6 +123,9 @@ namespace nestplacer
 		std::vector<trimesh::box3> m_boxes;
 		float m_binDist = 10.0f;
 		int m_curBinId = 0;
+	private:
+		trimesh::box3 m_reffbox;
+		trimesh::box3 m_refbbox;
 	};
 }
 
