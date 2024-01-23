@@ -113,20 +113,6 @@ namespace nestplacer
         float m_ratio;
     };
 
-	class NESTPLACER_API MultiBinExtendStrategy : public BinExtendStrategy {
-	public:
-		MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, float binDist = 10.0f, int priorBin = 0);
-		virtual ~MultiBinExtendStrategy();
-
-		trimesh::box3 bounding(int index) const override;
-	protected:
-		std::vector<trimesh::box3> m_boxes;
-		float m_binDist = 10.0f;
-		int m_curBinId = 0;
-	private:
-		trimesh::box3 m_reffbox;
-		trimesh::box3 m_refbbox;
-	};
 }
 
 #endif // NESTPLACER_PLACER_1702004306712_H

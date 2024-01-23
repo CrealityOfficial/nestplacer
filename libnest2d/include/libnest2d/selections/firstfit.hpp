@@ -76,7 +76,7 @@ public:
         };
         if (!packed_bins_.empty()) shrinkBin(bin);
         for (int i = 0; i < packed_bins_.size(); ++i) {
-            TBin bbin = pconfig.box_function(i);
+            TBin& bbin = pconfig.box_function(i);
             const ItemGroup& ig = packed_bins_[i];
             shrinkBin(bbin);
             placers.emplace_back(bbin);

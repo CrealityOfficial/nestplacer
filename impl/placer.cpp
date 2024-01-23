@@ -129,8 +129,9 @@ namespace nestplacer
                 for (const auto& poly : polys) {
                     trimesh::box3 box;
                     if (poly.size() == 2) {
-                        box.min = poly[0];
-                        box.max = poly[1];
+                        for (const auto& p : poly) {
+                            box += p;
+                        }
                     }
                     param.multiBins.emplace_back(box);
                 }
@@ -563,10 +564,6 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
-            if (parameter.curBinId) {
-                if (binid == parameter.curBinId) binid = 0;
-                else binid = binid + 1;
-            }
             const auto& bbox = box_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
@@ -712,10 +709,6 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
-            if (parameter.curBinId) {
-                if (binid == parameter.curBinId) binid = 0;
-                else binid = binid + 1;
-            }
             const auto& bbox = box_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
@@ -834,62 +827,5 @@ namespace nestplacer
         return b;
     }    
     
-    MultiBinExtendStrategy::MultiBinExtendStrategy(const std::vector<trimesh::box3>& boxes, float binDist, int priorBin)
-        : BinExtendStrategy()
-    {
-        m_binDist = binDist;
-        m_boxes.reserve(boxes.size());
-        if (!boxes.empty()) {
-            m_reffbox = boxes.front();
-            m_refbbox = boxes.back();
-        }
-        if (priorBin >= 0 && priorBin < boxes.size()) {
-            m_curBinId = priorBin;
-            std::vector<int> numbers;
-            numbers.reserve(boxes.size());
-            for (int i = 0; i < boxes.size(); ++i) {
-                numbers.emplace_back(i);
-            }
-            auto iter = std::find(numbers.begin(), numbers.end(), priorBin);
-            if (iter != numbers.end()) {
-                std::rotate(numbers.begin(), iter, iter + 1);
-            }
-            for (int i = 0; i < boxes.size(); ++i) {
-                m_boxes.emplace_back(boxes[numbers[i]]);
-            }
-        } else {
-            m_curBinId = priorBin;
-            m_boxes = boxes;
-        }
-    }
     
-    MultiBinExtendStrategy::~MultiBinExtendStrategy()
-    {
-    }
-    
-    trimesh::box3 MultiBinExtendStrategy::bounding(int index) const
-    {
-        if (index >= 0 && index < m_boxes.size()) {
-            return m_boxes[index];
-        } else if (index < 16) {
-            int nblocks = std::ceil(std::sqrt(index + 1));
-            int nrows = std::ceil((index + 1) / (double)nblocks);
-            int ncols = (index + 1) - (nrows - 1) * nblocks;
-            const trimesh::box3& box = m_reffbox;
-            float w = box.size().x, h = box.size().y;
-            trimesh::box3 binBox = box;
-            binBox.min.x += (ncols - 1) * (w + m_binDist);
-            binBox.min.y -= (nrows - 1) * (h + m_binDist);
-            binBox.max.x += (ncols - 1) * (w + m_binDist);
-            binBox.max.y -= (nrows - 1) * (h + m_binDist);
-            return binBox;
-        } else {
-            const trimesh::box3& box = m_refbbox;
-            float w = box.size().x, h = box.size().y;
-            trimesh::box3 binBox = box;
-            binBox.min.x += (w + m_binDist);
-            binBox.max.x += std::numeric_limits<float>::max();
-            return binBox;
-        }
-    }
 }
