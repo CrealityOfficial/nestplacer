@@ -76,19 +76,22 @@ namespace nestplacer {
         calDist = input.calDist;
     }
     
-    void Oritentation(const PR_Polygon& poly, PR_Polygon& result)
+    void Oritentation(const PR_Polygon& poly, PR_Polygon& result, bool counterClockWise = false)
     {
         float area = 0.0f;
         size_t len = poly.size();
         result.reserve(len);
+        //逆时针轮廓面积为正
         for (size_t i = 0, j = len - 1; i < len; j = i++) {
             const auto& a = poly[i];
             const auto& b = poly[j];
-            area += 0.5 * (a.x * b.y - a.y * b.x);
+            area += 0.5 * (b.x * a.y - b.y * a.x);
             result.emplace_back(a);
         }
         //确保输出轮廓为顺时针方向
-        if (area < 0) {
+        if ((area > 0.0f) && (!counterClockWise)) {
+            std::reverse(result.begin(), result.end());
+        } else if ((area < 0.0f) && counterClockWise) {
             std::reverse(result.begin(), result.end());
         }
     }
@@ -384,7 +387,7 @@ namespace nestplacer {
         const libnest2d::TPoint<Clipper3r::Polygon>& rv = other.referenceVertex();
 
 #ifdef _WIN32
-        #if _DEBUG
+#if _DEBUG
         if (false) {
             libnest2d::writer::ItemWriter<Clipper3r::Polygon> itemWriter;
             libnest2d::writer::ItemWriter<Clipper3r::Polygon>::SVGData datas;
@@ -424,7 +427,9 @@ namespace nestplacer {
         const size_t nums = polys.size();
         std::vector<libnest2d::Item> inputs;
         inputs.reserve(nums);
-        for (const auto& poly : polys) {
+        for (const auto& tmp : polys) {
+            PR_Polygon poly;
+            Oritentation(tmp, poly);
             Clipper3r::Polygon geometry;
             convertPolygon(poly, geometry);
             libnest2d::Item item(geometry);
