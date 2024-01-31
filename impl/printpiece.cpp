@@ -397,7 +397,7 @@ namespace nestplacer {
             datas.p = other.referenceVertex();
             itemWriter.saveItems(datas, "D://test/nfps");
         }
-        #endif
+#endif
 #endif // _WIN32
 
         const Clipper3r::Polygon& poly = subnfp.first;
@@ -432,21 +432,38 @@ namespace nestplacer {
             Oritentation(tmp, poly);
             Clipper3r::Polygon geometry;
             convertPolygon(poly, geometry);
+            auto con = geometry.Contour;
+            if (con.front() != con.back()) {
+                con.emplace_back(con.front());
+                geometry.Contour.swap(con);
+            }
             libnest2d::Item item(geometry);
             inputs.emplace_back(item);
         }
         std::launch policy = std::launch::deferred;
         policy |= std::launch::async;
         for (auto st = inputs.begin(); st != inputs.end(); ++st) {
-            const libnest2d::Item& osh = *st;
-            bool orbconvex = osh.isContourConvex();
+            const libnest2d::Item& state = *st;
+            bool orbconvex = state.isContourConvex();
             int start = std::distance(inputs.begin(), st);
             std::vector<PR_RESULT> remains(nums - start - 1);
             libnest2d::__parallel::enumerate(std::next(st), inputs.end(),
-                [&remains, &osh, &orbconvex, start, &calDist](const libnest2d::Item & sh, size_t n) {
+                [&remains, &state, &orbconvex, start, &calDist](const libnest2d::Item & orbit, size_t n) {
                 remains[n].first = start;
                 remains[n].second = n + start + 1;
-                PR_RESULT res = checkTwoPolygon(sh, osh, orbconvex, calDist);
+                Clipper3r::Polygon sPoly = state.transformedShape();
+                //AÎªÄæÊ±ÕëÂÖÀª
+                if (Clipper3r::Area(sPoly.Contour) > 0) {
+                    Clipper3r::ReversePath(sPoly.Contour);
+                }
+                //BÎªË³Ê±ÕëÂÖÀª
+                Clipper3r::Polygon oPoly = orbit.transformedShape();
+                if (Clipper3r::Area(oPoly.Contour) < 0) {
+                    Clipper3r::ReversePath(oPoly.Contour);
+                }
+                libnest2d::Item sItem(sPoly);
+                libnest2d::Item oItem(oPoly);
+                PR_RESULT res = checkTwoPolygon(sItem, oItem, orbconvex, calDist);
                 remains[n].state = res.state;
                 remains[n].dist = INT2UM(res.dist);
             }, policy);
