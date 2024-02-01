@@ -452,13 +452,13 @@ namespace nestplacer {
                 remains[n].first = start;
                 remains[n].second = n + start + 1;
                 Clipper3r::Polygon sPoly = state.transformedShape();
-                //A为逆时针轮廓
+                //A为逆时针轮廓,凸包处理时边为(first,next)
                 if (Clipper3r::Area(sPoly.Contour) > 0) {
                     Clipper3r::ReversePath(sPoly.Contour);
                 }
-                //B为顺时针轮廓
+                //B为逆时针轮廓，凸包处理时边为(next,first)
                 Clipper3r::Polygon oPoly = orbit.transformedShape();
-                if (Clipper3r::Area(oPoly.Contour) < 0) {
+                if (Clipper3r::Area(oPoly.Contour) > 0) {
                     Clipper3r::ReversePath(oPoly.Contour);
                 }
                 libnest2d::Item sItem(sPoly);
