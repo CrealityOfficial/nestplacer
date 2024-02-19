@@ -6,8 +6,8 @@
 #include "debug.h"
 
 
-#define INT2UM(x) (static_cast<double>(x) / 1000000.0)
-#define UM2INT(x) (static_cast<Clipper3r::cInt>((x) * 1000000.0 + 0.5 * (double((x) > 0) - ((x) < 0))))
+#define INT2UM(x) (static_cast<double>(x) / 10000.0)
+#define UM2INT(x) (static_cast<Clipper3r::cInt>((x) * 10000.0 + 0.5 * (double((x) > 0) - ((x) < 0))))
 
 namespace nestplacer
 {
@@ -701,7 +701,7 @@ namespace nestplacer
             config.placer_config.rotations.clear();
             config.placer_config.rotations.emplace_back(0);
         }
-
+        double fixArea = 0;
         inputs.reserve(fixed.size());
         for (PlacerItem* pitem : fixed) {
             nestplacer::PlacerItemGeometry geometry;
@@ -720,6 +720,7 @@ namespace nestplacer
                 item.markAsFixedInBin(binid);
                 item.convexCal(false);
                 inputs.emplace_back(item);
+                fixArea += std::fabs(item.area());
             } else {
                 libnest2d::Item item(sh);
                 if (!IntersectToBox(item, bbox)) {
@@ -728,11 +729,12 @@ namespace nestplacer
                 }
                 item.markAsFixedInBin(binid);
                 inputs.emplace_back(item);
+                fixArea += std::fabs(item.area());
             }
         }
         {
             if (!active) return;
-            libnest2d::Coord binArea = bbin.area();
+            double binArea = bbin.area();
             nestplacer::PlacerItemGeometry geometry;
             active->polygon(geometry);
             Clipper3r::Polygon sh, poly;
@@ -746,9 +748,10 @@ namespace nestplacer
             if (concaveCal) {
                 item.convexCal(false);
             }
-            const auto& contour = item.rawShape().Contour;
-            libnest2d::Coord itemArea = Clipper3r::Area(contour);
-            int nums = std::floor(binArea / std::fabs(itemArea));
+            libnest2d::Item cpy(sh);
+            cpy.inflate(threshold);
+            double itemArea = std::fabs(cpy.area());
+            int nums = std::floor((binArea - fixArea) / itemArea);
             inputs.reserve(fixed.size() + nums);
             for (int i = 0; i < nums; ++i) {
                 inputs.emplace_back(item);
