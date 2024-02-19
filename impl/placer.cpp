@@ -677,9 +677,9 @@ namespace nestplacer
             config.placer_config.new_alignment = libnest2d::NfpPlacer::Config::Alignment::DONT_ALIGN;
         }
 
-        auto box_func = [&binBox](const int& index) {
+        auto box_func = [&binBox, &parameter](const int& index) {
             libnest2d::Box box;
-            if (index == 0) box = convertBox(binBox);
+            if (index == parameter.curBinId) box = convertBox(binBox);
             return box;
         };
         config.placer_config.box_function = box_func;
