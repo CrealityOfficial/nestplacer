@@ -438,6 +438,8 @@ namespace nestplacer {
                 geometry.Contour.swap(con);
             }
             libnest2d::Item item(geometry);
+            item.inflate(0);
+            item.convexCal(calConvex);
             inputs.emplace_back(item);
         }
         std::launch policy = std::launch::deferred;
