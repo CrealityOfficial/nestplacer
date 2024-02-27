@@ -365,7 +365,7 @@ namespace nestplacer {
         return false;
     }
 
-    PR_RESULT checkTwoPolygon(const libnest2d::Item& rsh, const libnest2d::Item& other, bool orbconvex = true, bool calDist = false)
+    PR_RESULT checkTwoPolygon(const libnest2d::Item& rsh, const libnest2d::Item& other, bool orbconvex = true, bool calConvex = true, bool calDist = false)
     {
         PR_RESULT res;
         if (!boundIntersect(rsh, other)) {
@@ -378,7 +378,7 @@ namespace nestplacer {
         const auto& orb = other.transformedShape();
         bool shconvex = rsh.isContourConvex();
         libnest2d::nfp::NfpResult<Clipper3r::Polygon> subnfp;
-        if (shconvex && orbconvex) {
+        if (calConvex || (shconvex && orbconvex)) {
             subnfp = libnest2d::nfp::noFitPolygon<libnest2d::nfp::NfpLevel::CONVEX_ONLY, Clipper3r::Polygon>(sh, orb);
         } else {
             subnfp = libnest2d::nfp::noFitPolygon<libnest2d::nfp::NfpLevel::BOTH_CONCAVE, Clipper3r::Polygon>(sh, orb);
@@ -415,7 +415,7 @@ namespace nestplacer {
         return res;
     }
 
-    void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calDist, std::string* fileName)
+    void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calConvex, bool calDist, std::string* fileName)
     {
         if (fileName) {
             PRInput input;
@@ -448,7 +448,7 @@ namespace nestplacer {
             int start = std::distance(inputs.begin(), st);
             std::vector<PR_RESULT> remains(nums - start - 1);
             libnest2d::__parallel::enumerate(std::next(st), inputs.end(),
-                [&remains, &state, &orbconvex, start, &calDist](const libnest2d::Item & orbit, size_t n) {
+                [&remains, &state, &orbconvex, start, &calConvex, &calDist](const libnest2d::Item & orbit, size_t n) {
                 remains[n].first = start;
                 remains[n].second = n + start + 1;
                 Clipper3r::Polygon sPoly = state.transformedShape();
@@ -463,7 +463,7 @@ namespace nestplacer {
                 }
                 libnest2d::Item sItem(sPoly);
                 libnest2d::Item oItem(oPoly);
-                PR_RESULT res = checkTwoPolygon(sItem, oItem, orbconvex, calDist);
+                PR_RESULT res = checkTwoPolygon(sItem, oItem, orbconvex, calConvex, calDist);
                 remains[n].state = res.state;
                 remains[n].dist = INT2UM(res.dist);
             }, policy);

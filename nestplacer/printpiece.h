@@ -27,6 +27,6 @@ namespace nestplacer {
         double dist;
     };
 
-    NESTPLACER_API void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calDist = false, std::string* fileName = nullptr);
+    NESTPLACER_API void collisionCheck(const std::vector<PR_Polygon>& polys, std::vector<PR_RESULT>& results, bool calConvex = true, bool calDist = false, std::string* fileName = nullptr);
 }
 #endif //PRINT_PIECE_H
