@@ -109,7 +109,7 @@ namespace nestplacer {
             ccglobal::cxndSave(input, *fileName, nullptr);
         }
         PR_Polygon result;
-        //º∆À„
+        if (subject.empty() || object.empty()) return result;
         PR_Polygon station, orbit;
         Oritentation(subject, station);
         Oritentation(object, orbit);
