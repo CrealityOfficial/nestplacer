@@ -59,7 +59,7 @@ public:
         // into the appropriate placer
         const auto& cb = bin.minCorner();
         auto shrinkBin = [&pconfig](TBin & bbin) {
-            const auto& d = pconfig.binItemGap;
+            const auto& d = pconfig.binItemGap - pconfig.minItemGap / 2.0;
             const auto& w = bbin.width();
             const auto& h = bbin.height();
             if (d < std::min(w, h) / 2.0) {

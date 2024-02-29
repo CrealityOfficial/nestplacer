@@ -189,6 +189,7 @@ struct NfpPConfig {
     }
     
     Coord binItemGap = 0;
+    Coord minItemGap = 0;
     bool needNewBin = false;
     inline bool needAlign() const 
     {

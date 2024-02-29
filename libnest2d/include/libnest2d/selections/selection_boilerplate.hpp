@@ -34,7 +34,7 @@ protected:
         auto it = c.begin();
         Placer placer{ bin };
         ItemGroup items;
-        const auto& d = pcfg.binItemGap;
+        const auto& d = pcfg.binItemGap - pcfg.minItemGap / 2.0;
         const auto& w = bin.width();
         const auto& h = bin.height();
         Bin cbin{ bin };

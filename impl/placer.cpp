@@ -529,6 +529,7 @@ namespace nestplacer
         config.placer_config.setStartPoint(parameter.startPoint);
         config.placer_config.setNewStartPoint(parameter.startPoint);
         config.placer_config.binItemGap = edgeGap;
+        config.placer_config.minItemGap = itemGap;
         config.placer_config.needNewBin = true;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.alignMode);
@@ -668,6 +669,7 @@ namespace nestplacer
         config.placer_config.setStartPoint(parameter.startPoint);
         config.placer_config.setNewStartPoint(parameter.startPoint);
         config.placer_config.binItemGap = edgeGap;
+        config.placer_config.minItemGap = itemGap;
         config.placer_config.calConcave = concaveCal;
         if (parameter.needAlign) {
             config.placer_config.setAlignment(parameter.alignMode);
