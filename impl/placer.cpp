@@ -1,10 +1,10 @@
-#include <clipper3r/clipper.hpp>
+﻿#include <clipper3r/clipper.hpp>
 #include "../libnest2d/tools/svgtools.hpp"
 #include "msbase/utils/trimeshserial.h"
 #include "nestplacer/placer.h"
 #include "ccglobal/log.h"
 #include "debug.h"
-
+#include <random>
 
 #define INT2UM(x) (static_cast<double>(x) / 10000.0)
 #define UM2INT(x) (static_cast<Clipper3r::cInt>((x) * 10000.0 + 0.5 * (double((x) > 0) - ((x) < 0))))
@@ -391,6 +391,14 @@ namespace nestplacer
         return true;
     }
 
+    float randomValue() {
+        std::random_device rd;  // 随机设备用于生成种子
+        std::mt19937 gen(rd()); // Mersenne Twister 随机数引擎
+        std::uniform_int_distribution<> dis(1, 4); // 均匀分布的整数范围
+        int number = dis(gen); // 生成1到9之间的随机整数
+        return (float)number * 0.001;
+    }
+
     class PItem : public nestplacer::PlacerItem {
     public:
         PItem(const PlacerItemGeometry& geometry);
@@ -521,8 +529,9 @@ namespace nestplacer
         libnest2d::Box bbin = box_func(0);
         bool concaveCal = parameter.concaveCal;
         config.placer_config.calConcave = concaveCal;
-        libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
-        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
+        const float ramValue = randomValue();
+        libnest2d::Coord itemGap = UM2INT(parameter.itemGap - ramValue);
+        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap - ramValue);
         const double threshold = 0.5 * itemGap;
 
         libnest2d::NestControl ctl;
@@ -659,8 +668,9 @@ namespace nestplacer
         std::vector<libnest2d::Item> inputs;
         trimesh::box3 binBox = parameter.box;
         libnest2d::Box bbin = convertBox(binBox);
-        libnest2d::Coord itemGap = UM2INT(parameter.itemGap);
-        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap);
+        const float ramValue = randomValue();
+        libnest2d::Coord itemGap = UM2INT(parameter.itemGap - ramValue);
+        libnest2d::Coord edgeGap = UM2INT(parameter.binItemGap - ramValue);
         const double threshold = 0.5 * itemGap;
         bool concaveCal = parameter.concaveCal;
         
