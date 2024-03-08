@@ -3,3 +3,4 @@ tbb_static/2.0.0
 boost_static/1.0.0
 clipper3r/0.0.2
 nlopt_static/1.0.0
+msbase/0.0.2
