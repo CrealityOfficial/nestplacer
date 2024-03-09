@@ -565,6 +565,12 @@ namespace nestplacer
             config.placer_config.rotations.clear();
             config.placer_config.rotations.emplace_back(0);
         }
+
+        auto fix_box_check_func = [&binExtendStrategy](const int& index) {
+            trimesh::box3 binBox = binExtendStrategy.fixBounding(index);
+            libnest2d::Box box = convertBox(binBox);
+            return box;
+        };
         
         std::vector<libnest2d::Item> inputs;
         inputs.reserve(fixed.size() + actives.size());
@@ -574,7 +580,7 @@ namespace nestplacer
             Clipper3r::Polygon sh, poly;
             convertPolygon(geometry, sh);
             int binid = geometry.binIndex;
-            const auto& bbox = box_func(binid);
+            const auto& bbox = fix_box_check_func(binid);
             if (concaveCal) {
                 poly = concaveSimplyfy(sh, threshold);
                 libnest2d::Item item(poly);

@@ -63,6 +63,7 @@ namespace nestplacer
 		virtual ~BinExtendStrategy() {}
 
 		virtual trimesh::box3 bounding(int index) const = 0;
+		virtual trimesh::box3 fixBounding(int index) const = 0;
 	};
 	NESTPLACER_API void loadDataFromFile(const std::string& fileName, std::vector<PlacerItem*>& fixed, std::vector<PlacerItem*>& actives, PlacerParameter& parameter);
 	NESTPLACER_API void placeFromFile(const std::string& fileName, std::vector<PlacerResultRT>& results, const BinExtendStrategy& binExtendStrategy, ccglobal::Tracer* tracer);
@@ -97,6 +98,7 @@ namespace nestplacer
 		virtual ~YDefaultBinExtendStrategy();
 
 		trimesh::box3 bounding(int index) const override;
+		trimesh::box3 fixBounding(int index) const override { return m_box; }
 	protected:
 		trimesh::box3 m_box;
 		float m_dy;
@@ -108,6 +110,7 @@ namespace nestplacer
         virtual ~DiagonalBinExtendStrategy();
 
         trimesh::box3 bounding(int index) const override;
+		trimesh::box3 fixBounding(int index) const override { return m_box; }
     protected:
         trimesh::box3 m_box;
         float m_ratio;
